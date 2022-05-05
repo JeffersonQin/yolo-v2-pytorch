@@ -51,6 +51,7 @@ class VOCDataset(data.Dataset):
 
 		S = G.get('S')
 		B = G.get('B')
+		num_classes = G.get('num_classes')
 
 		# Image Augmentation
 		if self.train:
@@ -100,7 +101,7 @@ class VOCDataset(data.Dataset):
 		# ==>
 		# [x, y  (relative to cell), width, height, 1 if exist (confidence * IoU), one-hot encoding of 20 categories
 		#  ... (repeat for each object)]
-		label = torch.zeros((S, S, B * 25))
+		label = torch.zeros((S, S, B * (5 + num_classes)))
 		obj_cnt = torch.zeros((S, S))
 		for i in range(count):
 			obj = target['annotation']['object'][i]
@@ -128,12 +129,12 @@ class VOCDataset(data.Dataset):
 				warnings.warn(f'More than {B} objects in one cell ({S}x{S}): {target["annotation"]["folder"]}/{target["annotation"]["filename"]}', RuntimeWarning, stacklevel=2)
 				continue
 
-			label[yidx][xidx][int(0 + 25 * obj_cnt[yidx][xidx])] = x * S - xidx
-			label[yidx][xidx][int(1 + 25 * obj_cnt[yidx][xidx])] = y * S - yidx
-			label[yidx][xidx][int(2 + 25 * obj_cnt[yidx][xidx])] = w
-			label[yidx][xidx][int(3 + 25 * obj_cnt[yidx][xidx])] = h
-			label[yidx][xidx][int(4 + 25 * obj_cnt[yidx][xidx])] = 1
-			label[yidx][xidx][int(5 + 25 * obj_cnt[yidx][xidx] + G.get('categories').index(name))] = 1
+			label[yidx][xidx][int(0 + (5 + num_classes) * obj_cnt[yidx][xidx])] = x * S - xidx
+			label[yidx][xidx][int(1 + (5 + num_classes) * obj_cnt[yidx][xidx])] = y * S - yidx
+			label[yidx][xidx][int(2 + (5 + num_classes) * obj_cnt[yidx][xidx])] = w
+			label[yidx][xidx][int(3 + (5 + num_classes) * obj_cnt[yidx][xidx])] = h
+			label[yidx][xidx][int(4 + (5 + num_classes) * obj_cnt[yidx][xidx])] = 1
+			label[yidx][xidx][int(5 + (5 + num_classes) * obj_cnt[yidx][xidx] + G.get('categories').index(name))] = 1
 
 			obj_cnt[yidx][xidx] += 1
 

@@ -19,9 +19,10 @@ class YoloAnchorLayer(nn.Module):
 		shape = X.shape
 		S = G.get('S')
 		B = G.get('B')
-		X = X.reshape(-1, S, S, B, 25)
+		num_classes = G.get('num_classes')
+		X = X.reshape(-1, S, S, B, 5 + num_classes)
 		X[..., 0:2].sigmoid_()
-		X[..., 4:25].sigmoid_()
+		X[..., 4:(5 + num_classes)].sigmoid_()
 		X[..., 2] = X[..., 2].exp() * self.anchor[:, 0]
 		X[..., 3] = X[..., 3].exp() * self.anchor[:, 1]
 		X = X.reshape(shape)
@@ -29,9 +30,9 @@ class YoloAnchorLayer(nn.Module):
 
 
 class Yolo2BBox(nn.Module):
-	"""convert yolo result from (S, S, 25B) or (#, S, S, 25B) to normal bounding box result with size (S*S*B, 25) or (#, S*S*B, 25)"""
+	"""convert yolo result from (S, S, (5+num_classes)*B) or (#, S, S, (5+num_classes)*B) to normal bounding box result with size (S*S*B, (5+num_classes)) or (#, S*S*B, (5+num_classes))"""
 	def __init__(self):
-		"""convert yolo result from (S, S, 25B) or (#, S, S, 25B) to normal bounding box result with size (S*S*B, 25) or (#, S*S*B, 25)"""
+		"""convert yolo result from (S, S, (5+num_classes)*B) or (#, S, S, (5+num_classes)*B) to normal bounding box result with size (S*S*B, (5+num_classes)) or (#, S*S*B, (5+num_classes))"""
 		super(Yolo2BBox, self).__init__()
 
 
@@ -39,15 +40,16 @@ class Yolo2BBox(nn.Module):
 		"""forward
 
 		Args:
-			X (torch.Tensor): yolo result (S, S, 25B) or (#, S, S, 25B)
+			X (torch.Tensor): yolo result (S, S, (5+num_classes)*B) or (#, S, S, (5+num_classes)*B)
 
 		Returns:
-			torch.Tensor: bounding box result (S*S*B, 25) or (#, S*S*B, 25) (25: x1, y1, x2, y2, objectness, class_prob)
+			torch.Tensor: bounding box result (S*S*B, (5+num_classes)) or (#, S*S*B, (5+num_classes)) ((5+num_classes): x1, y1, x2, y2, objectness, class_prob)
 		"""
 		with torch.no_grad():
 			device = X.device
 			S = G.get('S')
 			B = G.get('B')
+			num_classes = G.get('num_classes')
 
 			# arrange cell xidx, yidx
 			# [S, S]
@@ -68,7 +70,7 @@ class Yolo2BBox(nn.Module):
 				X.unsqueeze_(0)
 				single = True
 
-			X.reshape_(-1, S, S, B, 25)
+			X.reshape_(-1, S, S, B, 5 + num_classes)
 			x = (X[..., 0] + cell_xidx) / S
 			y = (X[..., 1] + cell_yidx) / S
 
@@ -82,7 +84,7 @@ class Yolo2BBox(nn.Module):
 			X[..., 2] = x2
 			X[..., 3] = y2
 
-			X.reshape_(-1, S * S * B, 25)
+			X.reshape_(-1, S * S * B, 5 + num_classes)
 
 			if single:
 				X = X[0]

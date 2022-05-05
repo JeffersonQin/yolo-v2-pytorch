@@ -99,7 +99,7 @@ def load_data() -> torch.Tensor:
 
 	for i, (_, y) in enumerate(train_iter):
 		y = y.to(try_gpu())
-		y = y.reshape(-1, 25)
+		y = y.reshape(-1, 25) # Here we hard-encode because we are using VOC dataset
 		p = (y[:, 4] == 1)
 		Y = torch.cat((Y, y[:, 2:4][p]), dim=0)
 		print(f'Loading Data: {i + 1} / {len(train_iter)}')
