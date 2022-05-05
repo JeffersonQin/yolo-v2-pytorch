@@ -3,7 +3,7 @@ import numpy as np
 import time
 
 
-__all__ = ['Accumulator', 'Timer']
+__all__ = ['try_gpu', 'Accumulator', 'Timer']
 
 
 def try_gpu():
