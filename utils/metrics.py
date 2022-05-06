@@ -67,6 +67,84 @@ class ObjectDetectionMetricsCalculator():
 		"""
 		num_classes = G.get('num_classes')
 
+		# Optimized version
+		# Time Complexity: O(valid detection count)
+		
+		# obtain objectiveness, categories, and confidences
+		score_hat, cat_hat = pred[:, 5:(5 + num_classes)].max(dim=1)
+		confidence_hat = pred[:, 4]
+
+		# filter out the detection with confidence lower than the threshold
+		pred = pred[confidence_hat * score_hat > self.confidence_thres]
+		# update the score and category
+		score_hat, cat_hat = pred[:, 5:(5 + num_classes)].max(dim=1)
+		confidence_hat = pred[:, 4]
+		prob_hat = score_hat * confidence_hat
+
+		# filter out true ground truth
+		truth = truth[truth[:, 4] > 0]
+		# obtain the ground truth category
+		_, cat_truth = truth[:, 5:(5 + num_classes)].max(dim=1)
+
+		# obtain size
+		N = pred.shape[0]
+		M = truth.shape[0]
+
+		# expand data for IoU matrix calculation
+		# [N, 5+num_classes] => [N, 1, 5+num_classes] => [N, M, 5+num_classes]
+		pred = pred.unsqueeze(1).expand(N, M, 5 + num_classes)
+		# [M, 5+num_classes] => [1, M, 5+num_classes] => [N, M, 5+num_classes]
+		truth = truth.unsqueeze(0).expand(N, M, 5 + num_classes)
+
+		# calculate IoU
+		# [N, M]
+		x1, y1, x2, y2 = truth[:, :, 0], truth[:, :, 1], truth[:, :, 2], truth[:, :, 3]
+		x1_hat, y1_hat, x2_hat, y2_hat = pred[:, :, 0], pred[:, :, 1], pred[:, :, 2], pred[:, :, 3]
+		# [N, M]
+		wi = torch.min(x2, x2_hat) - torch.max(x1, x1_hat)
+		hi = torch.min(y2, y2_hat) - torch.max(y1, y1_hat)
+		wi = torch.max(wi, torch.zeros_like(wi))
+		hi = torch.max(hi, torch.zeros_like(hi))
+		# [N, M]
+		intersection = wi * hi
+		union = (x2 - x1) * (y2 - y1) + (x2_hat - x1_hat) * (y2_hat - y1_hat) - intersection
+		IoU = intersection / (union + 1e-6)
+
+		for c in range(num_classes):
+			# filter out the detection with category not equal to c
+			pred_cat_idx = (cat_hat == c)
+			truth_cat_idx = (cat_truth == c)
+
+			# update ground truth
+			self.data[c]['truth'] += int(truth_cat_idx.sum())
+
+			if pred_cat_idx.sum() == 0: continue
+			if truth_cat_idx.sum() == 0:
+				for conf in prob_hat[pred_cat_idx]:
+					self.data[c]['data'].append(CalculationMetrics(IoU=0, confidence=float(conf), mustbe_FP=True))
+				continue
+
+			mustbe_FP = torch.zeros((truth_cat_idx.count_nonzero()), dtype=torch.bool, device=pred.device)
+
+			# [N', M']
+			IoU_C = IoU[pred_cat_idx][:, truth_cat_idx]
+			# Choose the maximum IoU for each detection (not ground truth)
+			# [N']
+			IoU_C_max, truth_idx = IoU_C.max(dim=1)
+			# sort IoU_C_max in descending order
+			sort_idx = torch.argsort(IoU_C_max, descending=True)
+
+			for j in sort_idx:
+				# add data
+				self.data[c]['data'].append(CalculationMetrics(float(IoU_C_max[j]), float(prob_hat[pred_cat_idx][j]), bool(mustbe_FP[truth_idx[j]])))
+				# update must be False Positive (FP)
+				mustbe_FP[truth_idx[j]] = True
+				# update detection
+				self.data[c]['detection'] += 1
+
+		# Naive Algorithm (Not executed)
+		# Time Complexity: O(N^2) = O(S^4 * B^2 * C^2)
+		return
 		choose_truth_index = [None for _ in range(pred.shape[0])]
 		iou = [0 for _ in range(pred.shape[0])]
 
