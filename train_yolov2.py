@@ -22,13 +22,23 @@ accum_batch_num = 8
 num_epoch = 160
 weight_decay = 0.0005
 momentum = 0.9
+lambda_coord = 5.0
+lambda_noobj = 1.0
+lambda_obj = 2.0
+lambda_class = 1.0
+lambda_prior = 0.01
+IoU_thres = 0.5
+epoch_prior = 20
 
 # learning rate scheduler
 def lr(epoch):
 	if epoch < 10: return 0.00001 * (epoch + 1)
+	if epoch < 20: return 0.0001 * (epoch - 9)
 	if epoch < 60: return 0.001
 	if epoch < 90: return 0.0001
 	return 0.00001
+
+loss = YoloLoss(lambda_coord, lambda_noobj, lambda_obj, lambda_class, lambda_prior, IoU_thres, epoch_prior)
 
 
 if __name__ == '__main__':

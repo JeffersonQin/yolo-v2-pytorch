@@ -189,8 +189,8 @@ def train(net: nn.Module, train_iter: DataLoader, test_iter: DataLoader, num_epo
 			# log test timing
 			writer.add_scalars(f'timing/{log_id}', {'test': timer.sum()}, epoch)
 
-			# test mAP every 5 epochs
-			if (epoch + 1) % 5 == 0:
+			# test mAP every 10 epochs
+			if (epoch + 1) % 10 == 0:
 				calc = metrics_utils.ObjectDetectionMetricsCalculator(G.get('num_classes'), 0.1)
 
 				for i, batch in enumerate(test_iter):
@@ -203,6 +203,3 @@ def train(net: nn.Module, train_iter: DataLoader, test_iter: DataLoader, num_epo
 
 				# log test mAP
 				writer.add_scalars(f'mAP/VOC', {log_id: calc.calculate_VOCmAP()}, epoch)
-				writer.add_scalars(f'mAP/COCO', {log_id: calc.calculate_COCOmAP()}, epoch)
-				writer.add_scalars(f'mAP/AP@.5', {log_id: calc.calculate_COCOmAP50()}, epoch)
-				writer.add_scalars(f'mAP/AP@.75', {log_id: calc.calculate_COCOmAP75()}, epoch)
