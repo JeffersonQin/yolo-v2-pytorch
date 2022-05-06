@@ -98,7 +98,7 @@ class ObjectDetectionMetricsCalculator():
 				else: choose = False
 				# if choose, assign value
 				if choose:
-					iou[i] = this_iou
+					iou[i] = float(this_iou)
 					choose_truth_index[i] = j
 		# init a bool array for judging mustbe_FP later
 		truth_chosen = [False for _ in range(len(truth))]
