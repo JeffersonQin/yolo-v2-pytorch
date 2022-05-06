@@ -7,26 +7,37 @@ __all__ = ['YoloAnchorLayer', 'Yolo2BBox']
 
 
 class YoloAnchorLayer(nn.Module):
-	"""Apply anchor to the output"""
+	"""Apply anchors to the output"""
 	def __init__(self):
-		"""Apply anchor to the output"""
+		"""Apply anchors to the output"""
 		super(YoloAnchorLayer, self).__init__()
-		self.anchor = G.get('anchor')
+		self.anchors = G.get('anchors')
 
 
-	def forawrd(self, X: torch.Tensor) -> torch.Tensor():
-		self.anchor = self.anchor.to(X.device)
+	def forward(self, X: torch.Tensor) -> torch.Tensor:
+		self.anchors = self.anchors.to(X.device)
 		shape = X.shape
 		S = G.get('S')
 		B = G.get('B')
 		num_classes = G.get('num_classes')
+
+		# reshape from conv2d shape to (batch_size, S, S, filter)
+		X = X.permute(0, 2, 3, 1)
+		shape = X.shape
+
+		# reshape to (batch_size, S, S, B, 5 + num_classes) for further processing
 		X = X.reshape(-1, S, S, B, 5 + num_classes)
-		X[..., 0:2].sigmoid_()
-		X[..., 4:(5 + num_classes)].sigmoid_()
-		X[..., 2] = X[..., 2].exp() * self.anchor[:, 0]
-		X[..., 3] = X[..., 3].exp() * self.anchor[:, 1]
-		X = X.reshape(shape)
-		return X
+
+		XC = torch.clone(X)
+
+		XC[..., 0:2] = X[..., 0:2].sigmoid()
+		XC[..., 4:(5 + num_classes)] = X[..., 4:(5 + num_classes)].sigmoid()
+		XC[..., 2] = X[..., 2].exp() * self.anchors[:, 0]
+		XC[..., 3] = X[..., 3].exp() * self.anchors[:, 1]
+		
+		# reshape back
+		XC = XC.reshape(shape)
+		return XC
 
 
 class Yolo2BBox(nn.Module):
@@ -78,14 +89,16 @@ class Yolo2BBox(nn.Module):
 			x2 = x + X[..., 2] / 2.0
 			y2 = y + X[..., 3] / 2.0
 
-			X[..., 0] = x1
-			X[..., 1] = y1
-			X[..., 2] = x2
-			X[..., 3] = y2
+			XC = X.clone()
 
-			X = X.reshape(-1, S * S * B, 5 + num_classes)
+			XC[..., 0] = x1
+			XC[..., 1] = y1
+			XC[..., 2] = x2
+			XC[..., 3] = y2
+
+			XC = XC.reshape(-1, S * S * B, 5 + num_classes)
 
 			if single:
-				X = X[0]
+				XC = XC[0]
 			
-			return X
+			return XC
