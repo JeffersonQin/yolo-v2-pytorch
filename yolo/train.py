@@ -1,3 +1,4 @@
+import os
 import random
 from typing import Optional
 import torch
@@ -5,13 +6,13 @@ import torch.nn as nn
 import torch.utils.tensorboard as tensorboard
 
 from torch.utils.data import DataLoader
-from utils import metrics
+from utils import metrics as metrics_utils
 from utils.utils import Accumulator, Timer, get_all_gpu, update_lr
 from utils import G
 from yolo.loss import YoloLoss
 
 
-def train(net: nn.Module, train_iter: DataLoader, test_iter: DataLoader, num_epochs: int, lr, momentum: float, weight_decay: float, log_id: str, num_gpu: int=1, accum_batch_num: int=1, save_dir: str='./model', load: Optional[str]=None, load_epoch: int=-1):
+def train(net: nn.Module, train_iter: DataLoader, test_iter: DataLoader, num_epochs: int, lr, momentum: float, weight_decay: float, log_id: str, num_gpu: int=1, accum_batch_num: int=1, save_dir: str='./model', load: Optional[str]=None, load_epoch: int=-1, visualize_cnt: int=10):
 	"""trainer for yolo v2. 
 	Note: weight init is not done in this method, because the architecture
 	of yolo v2 is rather complicated with the design of pass through layer
@@ -30,7 +31,10 @@ def train(net: nn.Module, train_iter: DataLoader, test_iter: DataLoader, num_epo
 		save_dir (str, optional): saving directory for model weights. Defaults to './model'.
 		load (Optional[str], optional): path of model weights to load if exist. Defaults to None.
 		load_epoch (int, optional): done epoch count minus one when loading, should be the same with the number in auto-saved file name. Defaults to -1.
+		visualize_cnt (int, optional): number of batches to visualize each epoch during training progress. Defaults to 10.
 	"""
+	os.makedirs(save_dir, exist_ok=True)
+
 	# tensorboard
 	writer = tensorboard.SummaryWriter(f'logs/yolo')
 
@@ -60,7 +64,6 @@ def train(net: nn.Module, train_iter: DataLoader, test_iter: DataLoader, num_epo
 	loss = YoloLoss()
 
 	num_batches = len(train_iter)
-	visualize_cnt = 5
 
 	def plot(batch: int, num_batches: int, visualize_cnt: int) -> int:
 		"""judge whether to plot or not for a specific batch
@@ -140,7 +143,7 @@ def train(net: nn.Module, train_iter: DataLoader, test_iter: DataLoader, num_epo
 				metrics.add(loss_val.sum(), X.shape[0])
 
 			# log train loss
-			print(f'epoch {epoch} batch {i}/{num_batches} loss: {metrics[0] / metrics[1]}')
+			print(f'epoch {epoch} batch {i + 1}/{num_batches} loss: {metrics[0] / metrics[1]}')
 			plot_indices = plot(i + 1, num_batches, visualize_cnt)
 			if plot_indices > 0:
 				writer.add_scalars(f'loss/{log_id}', {
@@ -166,7 +169,7 @@ def train(net: nn.Module, train_iter: DataLoader, test_iter: DataLoader, num_epo
 			timer.start()
 
 			# test loss
-			for batch in test_iter:
+			for i, batch in enumerate(test_iter):
 				X, y = batch
 				X, y = X.to(devices[0]), y.to(devices[0])
 				yhat = net(X)
@@ -174,19 +177,28 @@ def train(net: nn.Module, train_iter: DataLoader, test_iter: DataLoader, num_epo
 				loss_val = loss(yhat, y, 1000000) # very big epoch number to omit prior loss
 				metrics.add(loss_val.sum(), X.shape[0])
 
+				print(f'epoch {epoch} batch {i + 1}/{len(test_iter)} test loss: {metrics[0] / metrics[1]}')
+
 			timer.stop()
+
+			# log test loss
+			writer.add_scalars(f'loss/{log_id}', {
+				'test': metrics[0] / metrics[1],
+			}, (epoch + 1) * visualize_cnt)
 			# log test timing
 			writer.add_scalars(f'timing/{log_id}', {'test': timer.sum()}, epoch)
 
 			# test mAP every 5 epochs
-			if epoch % 5 == 0:
-				calc = metrics.ObjectDetectionMetricsCalculator(G.get('num_classes'), 0.1)
+			if (epoch + 1) % 5 == 0:
+				calc = metrics_utils.ObjectDetectionMetricsCalculator(G.get('num_classes'), 0.1)
 
-				for batch in test_iter:
+				for i, batch in enumerate(test_iter):
 					X, y = batch
 					X, y = X.to(devices[0]), y.to(devices[0])
 					yhat = net(X)
 					calc.add_data(yhat, y)
+
+					print(f'epoch {epoch} batch {i + 1}/{len(test_iter)} testing mAP')
 
 				# log test mAP
 				writer.add_scalars(f'mAP/VOC', {log_id: calc.calculate_VOCmAP()}, epoch)
@@ -194,10 +206,5 @@ def train(net: nn.Module, train_iter: DataLoader, test_iter: DataLoader, num_epo
 				writer.add_scalars(f'mAP/AP@.5', {log_id: calc.calculate_COCOmAP50()}, epoch)
 				writer.add_scalars(f'mAP/AP@.75', {log_id: calc.calculate_COCOmAP75()}, epoch)
 
-		# log test loss
-		writer.add_scalars(f'loss/{log_id}', {
-			'test': metrics[0] / metrics[1],
-		}, (epoch + 1) * visualize_cnt)
-
 		# save model
-		torch.save(net.state_dict(), f'models/{log_id}-epoch-{epoch}.pth')
+		torch.save(net.state_dict(), os.path.join(save_dir, f'./{log_id}-epoch-{epoch}.pth'))
