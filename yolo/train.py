@@ -12,7 +12,7 @@ from utils import G
 from yolo.loss import YoloLoss
 
 
-def train(net: nn.Module, train_iter: DataLoader, test_iter: DataLoader, num_epochs: int, lr, momentum: float, weight_decay: float, log_id: str, num_gpu: int=1, accum_batch_num: int=1, save_dir: str='./model', load: Optional[str]=None, load_epoch: int=-1, visualize_cnt: int=10):
+def train(net: nn.Module, train_iter: DataLoader, test_iter: DataLoader, num_epochs: int, lr, momentum: float, weight_decay: float, log_id: str, loss=YoloLoss(), num_gpu: int=1, accum_batch_num: int=1, save_dir: str='./model', load: Optional[str]=None, load_epoch: int=-1, visualize_cnt: int=10):
 	"""trainer for yolo v2. 
 	Note: weight init is not done in this method, because the architecture
 	of yolo v2 is rather complicated with the design of pass through layer
@@ -26,6 +26,7 @@ def train(net: nn.Module, train_iter: DataLoader, test_iter: DataLoader, num_epo
 		momentum (float): momentum for optimizer
 		weight_decay (float): weight decay for optimizer
 		log_id (str): identifier for logging in tensorboard.
+		loss (YoloLoss): loss function
 		num_gpu (int, optional): number of gpu to train on, used for parallel training. Defaults to 1.
 		accum_batch_num (int, optional): number of batch to accumulate gradient, used to solve OOM problem when using big batch sizes. Defaults to 1.
 		save_dir (str, optional): saving directory for model weights. Defaults to './model'.
@@ -59,9 +60,6 @@ def train(net: nn.Module, train_iter: DataLoader, test_iter: DataLoader, num_epo
 		tlr = lr
 	else: tlr = 0.001
 	optimizer = torch.optim.SGD(net.parameters(), tlr, momentum=momentum, weight_decay=weight_decay)
-
-	# set up loss
-	loss = YoloLoss()
 
 	num_batches = len(train_iter)
 
@@ -160,6 +158,9 @@ def train(net: nn.Module, train_iter: DataLoader, test_iter: DataLoader, num_epo
 		# log train timing
 		writer.add_scalars(f'timing/{log_id}', {'train': timer.sum()}, epoch)
 
+		# save model
+		torch.save(net.state_dict(), os.path.join(save_dir, f'./{log_id}-epoch-{epoch}.pth'))
+
 		# test!
 		G.set('S', 13)
 		G.set('B', 5)
@@ -205,6 +206,3 @@ def train(net: nn.Module, train_iter: DataLoader, test_iter: DataLoader, num_epo
 				writer.add_scalars(f'mAP/COCO', {log_id: calc.calculate_COCOmAP()}, epoch)
 				writer.add_scalars(f'mAP/AP@.5', {log_id: calc.calculate_COCOmAP50()}, epoch)
 				writer.add_scalars(f'mAP/AP@.75', {log_id: calc.calculate_COCOmAP75()}, epoch)
-
-		# save model
-		torch.save(net.state_dict(), os.path.join(save_dir, f'./{log_id}-epoch-{epoch}.pth'))
