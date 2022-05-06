@@ -64,13 +64,12 @@ class Yolo2BBox(nn.Module):
 			cell_xidx = cell_xidx.to(device)
 			cell_yidx = cell_yidx.to(device)
 
-		with torch.no_grad():
 			single = False
 			if len(X.shape) == 3:
 				X.unsqueeze_(0)
 				single = True
 
-			X.reshape_(-1, S, S, B, 5 + num_classes)
+			X = X.reshape(-1, S, S, B, 5 + num_classes)
 			x = (X[..., 0] + cell_xidx) / S
 			y = (X[..., 1] + cell_yidx) / S
 
@@ -84,7 +83,7 @@ class Yolo2BBox(nn.Module):
 			X[..., 2] = x2
 			X[..., 3] = y2
 
-			X.reshape_(-1, S * S * B, 5 + num_classes)
+			X = X.reshape(-1, S * S * B, 5 + num_classes)
 
 			if single:
 				X = X[0]
