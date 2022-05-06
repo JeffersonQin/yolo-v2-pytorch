@@ -17,15 +17,15 @@ numpy.random.seed(seed)
 G.init()
 
 # define hyper parameters
-batch_size = 4
-accum_batch_num = 16
+batch_size = 8
+accum_batch_num = 8
 num_epoch = 160
 weight_decay = 0.0005
 momentum = 0.9
 
 # learning rate scheduler
 def lr(epoch):
-	if epoch < 10: return 0.0001 * (epoch + 1)
+	if epoch < 10: return 0.00001 * (epoch + 1)
 	if epoch < 60: return 0.001
 	if epoch < 90: return 0.0001
 	return 0.00001
