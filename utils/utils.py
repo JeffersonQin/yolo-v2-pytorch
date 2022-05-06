@@ -13,6 +13,21 @@ def try_gpu():
 		return torch.device('cpu')
 
 
+def get_all_gpu(num_gpu: int):
+	return [torch.device('cuda:' + str(i)) for i in range(num_gpu)]
+
+
+def update_lr(opt: torch.optim.Optimizer, lr: float):
+	"""update learning rate for all parameters
+
+	Args:
+		opt (torch.optim.Optimizer): optimizer
+		lr (float): learning rate
+	"""
+	for param_group in opt.param_groups:
+		param_group['lr'] = lr
+
+
 # from d2l
 class Accumulator(object):
     """
