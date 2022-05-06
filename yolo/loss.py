@@ -62,8 +62,8 @@ class YoloLoss(nn.Module):
 		"""Calculate yolo loss.
 
 		Args:
-			yhat (torch.Tensor): yhat, [#, S, S, 25B], where B is the number of bounding boxes.
-			y (torch.Tensor): y, [#, S, S, 25B], where B is the number of bounding boxes.
+			yhat (torch.Tensor): yhat, [#, S, S, (num_classes+5)*B], where B is the number of bounding boxes.
+			y (torch.Tensor): y, [#, S, S, (num_classes+5)*B], where B is the number of bounding boxes.
 			epoch (int): epoch.
 
 		Returns:

@@ -3,6 +3,7 @@ from enum import Enum
 import numpy as np
 import torch
 
+from . import globalvar as G
 from yolo.converter import Yolo2BBox
 
 
@@ -61,14 +62,16 @@ class ObjectDetectionMetricsCalculator():
 		"""Add single image data
 
 		Args:
-			pred (torch.Tensor): detection prediction (S, S, 25B)
-			truth (torch.Tensor): ground truth (YOLO v2 format) (S, S, 25B)
+			pred (torch.Tensor): detection prediction (S, S, (5+num_classes)*B)
+			truth (torch.Tensor): ground truth (YOLO v2 format) (S, S, (5+num_classes)*B)
 		"""
+		num_classes = G.get('num_classes')
+
 		choose_truth_index = [None for _ in range(pred.shape[0])]
 		iou = [0 for _ in range(pred.shape[0])]
 
 		for i in range(pred.shape[0]):
-			score_hat, cat_hat = pred[i][5:25].max(dim=0)
+			score_hat, cat_hat = pred[i][5:(5 + num_classes)].max(dim=0)
 			confidence_hat = pred[i][4]
 			# filter by confidence threshold
 			if confidence_hat * score_hat < self.confidence_thres: continue
@@ -76,7 +79,7 @@ class ObjectDetectionMetricsCalculator():
 			x1hat, y1hat, x2hat, y2hat = pred[i][0:4]
 
 			for j in range(truth.shape[0]):
-				score, cat = truth[j][5:25].max(dim=0)
+				score, cat = truth[j][5:(5 + num_classes)].max(dim=0)
 				confidence = truth[j][4]
 				# filter true truth
 				if confidence < 1: continue
@@ -106,7 +109,7 @@ class ObjectDetectionMetricsCalculator():
 		sort_idx = np.argsort(iou)[::-1]
 		# add into metrics
 		for i in sort_idx:
-			score, cat = pred[i][5:25].max(dim=0)
+			score, cat = pred[i][5:(5 + num_classes)].max(dim=0)
 			confidence = pred[i][4]
 			# filter by confidence threshold
 			if confidence * score < self.confidence_thres: continue
@@ -126,7 +129,7 @@ class ObjectDetectionMetricsCalculator():
 			self.data[cat]['detection'] += 1
 		# update ground truth statistics
 		for i in range(truth.shape[0]):
-			score, cat = truth[i][5:25].max(dim=0)
+			score, cat = truth[i][5:(5 + num_classes)].max(dim=0)
 			confidence = truth[i][4]
 			if confidence < 1: continue
 			self.data[cat]['truth'] += 1
@@ -136,8 +139,8 @@ class ObjectDetectionMetricsCalculator():
 		"""Add data for calculating metrics
 
 		Args:
-			pred (torch.Tensor): detection prediction, can be either batch result or single result (#, S, S, 25B) or (S, S, 25B)
-			truth (torch.Tensor): ground truth (YOLO v2 format), can be either batch result or single result (#, S, S, 25B) or (S, S, 25B)
+			pred (torch.Tensor): detection prediction, can be either batch result or single result (#, S, S, (5+num_classes)*B) or (S, S, (5+num_classes)*B)
+			truth (torch.Tensor): ground truth (YOLO v2 format), can be either batch result or single result (#, S, S, (5+num_classes)*B) or (S, S, (5+num_classes)*B)
 		"""
 		converter = Yolo2BBox()
 		
