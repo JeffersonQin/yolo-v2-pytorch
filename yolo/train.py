@@ -180,26 +180,25 @@ def train(net: nn.Module, train_iter: DataLoader, test_iter: DataLoader, num_epo
 
 				print(f'epoch {epoch} batch {i + 1}/{len(test_iter)} test loss: {metrics[0] / metrics[1]}')
 
-			timer.stop()
-
 			# log test loss
 			writer.add_scalars(f'loss/{log_id}', {
 				'test': metrics[0] / metrics[1],
 			}, (epoch + 1) * visualize_cnt)
+			
+			calc = metrics_utils.ObjectDetectionMetricsCalculator(G.get('num_classes'), 0.1)
+
+			for i, batch in enumerate(test_iter):
+				X, y = batch
+				X, y = X.to(devices[0]), y.to(devices[0])
+				yhat = net(X)
+				calc.add_data(yhat, y)
+
+				print(f'epoch {epoch} batch {i + 1}/{len(test_iter)} testing mAP')
+
+			timer.stop()
+
+			# log test mAP
+			writer.add_scalars(f'mAP/VOC', {log_id: calc.calculate_VOCmAP()}, epoch)
+
 			# log test timing
 			writer.add_scalars(f'timing/{log_id}', {'test': timer.sum()}, epoch)
-
-			# test mAP every 10 epochs
-			if (epoch + 1) % 10 == 0:
-				calc = metrics_utils.ObjectDetectionMetricsCalculator(G.get('num_classes'), 0.1)
-
-				for i, batch in enumerate(test_iter):
-					X, y = batch
-					X, y = X.to(devices[0]), y.to(devices[0])
-					yhat = net(X)
-					calc.add_data(yhat, y)
-
-					print(f'epoch {epoch} batch {i + 1}/{len(test_iter)} testing mAP')
-
-				# log test mAP
-				writer.add_scalars(f'mAP/VOC', {log_id: calc.calculate_VOCmAP()}, epoch)
