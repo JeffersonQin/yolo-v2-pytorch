@@ -44,7 +44,7 @@ Besides, compared with the [YOLO v1 I implemented](https://github.com/JeffersonQ
 |     New Network     |  ✅*   |
 |   Dimension Prior   |   ✅   |
 | Location Prediction |   ✅   |
-|     Passthrough     |  ✅*   |
+|     Passthrough     |   ✅   |
 |     Multi-scale     |   ✅   |
 |   Hi-Res Detector   |   ✅   |
 
