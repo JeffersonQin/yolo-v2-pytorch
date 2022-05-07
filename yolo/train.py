@@ -155,7 +155,7 @@ def train(net: nn.Module, train_iter: DataLoader, test_iter: DataLoader, num_epo
 			# random choose a new image dimension size from
 			# [320, 352, 384, 416, 448, 480, 512, 544, 576, 608]
 			# that is, randomly adjust S between [10, 19]
-			if epoch % 10 == 0:
+			if i % 10 == 0:
 				G.set('S', random.randint(10, 19))
 
 		timer.stop()
