@@ -96,8 +96,8 @@ def train(net: nn.Module, train_iter: DataLoader, test_iter: DataLoader, num_epo
 		# adjust true epoch number according to pre_load
 		epoch = epoch + load_epoch + 1
 
-		# define metrics: train loss, sample count
-		metrics = Accumulator(2)
+		# define metrics: coord_loss, class_loss, no_obj_loss, obj_loss, prior_loss, train loss, sample count
+		metrics = Accumulator(7)
 		# define timer
 		timer = Timer()
 
@@ -116,7 +116,8 @@ def train(net: nn.Module, train_iter: DataLoader, test_iter: DataLoader, num_epo
 			X, y = X.to(devices[0]), y.to(devices[0])
 			yhat = net(X)
 
-			loss_val = loss(yhat, y, epoch)
+			coord_loss, class_loss, no_obj_loss, obj_loss, prior_loss = loss(yhat, y, epoch)
+			loss_val = coord_loss + class_loss + no_obj_loss + obj_loss + prior_loss
 
 			# backward to accumulate gradients
 			loss_val.sum().backward()
@@ -138,15 +139,18 @@ def train(net: nn.Module, train_iter: DataLoader, test_iter: DataLoader, num_epo
 				accum = 0
 
 			with torch.no_grad():
-				metrics.add(loss_val.sum(), X.shape[0])
+				metrics.add(coord_loss.sum(), class_loss.sum(), no_obj_loss.sum(), obj_loss.sum(), prior_loss.sum(), loss_val.sum(), X.shape[0])
 
 			# log train loss
-			print(f'epoch {epoch} batch {i + 1}/{num_batches} loss: {metrics[0] / metrics[1]}')
+			print(f'epoch {epoch} batch {i + 1}/{num_batches} loss: {metrics[5] / metrics[6]}')
 			plot_indices = plot(i + 1, num_batches, visualize_cnt)
 			if plot_indices > 0:
-				writer.add_scalars(f'loss/{log_id}', {
-					'train': metrics[0] / metrics[1],
-				}, epoch * visualize_cnt + plot_indices)
+				writer.add_scalars(f'loss/{log_id}/total', {'train': metrics[5] / metrics[6],}, epoch * visualize_cnt + plot_indices)
+				writer.add_scalars(f'loss/{log_id}/coord', {'train': metrics[0] / metrics[6],}, epoch * visualize_cnt + plot_indices)
+				writer.add_scalars(f'loss/{log_id}/class', {'train': metrics[1] / metrics[6],}, epoch * visualize_cnt + plot_indices)
+				writer.add_scalars(f'loss/{log_id}/no_obj', {'train': metrics[2] / metrics[6],}, epoch * visualize_cnt + plot_indices)
+				writer.add_scalars(f'loss/{log_id}/obj', {'train': metrics[3] / metrics[6],}, epoch * visualize_cnt + plot_indices)
+				writer.add_scalars(f'loss/{log_id}/prior', {'train': metrics[4] / metrics[6],}, epoch * visualize_cnt + plot_indices)
 
 			# random choose a new image dimension size from
 			# [320, 352, 384, 416, 448, 480, 512, 544, 576, 608]
@@ -165,7 +169,7 @@ def train(net: nn.Module, train_iter: DataLoader, test_iter: DataLoader, num_epo
 		G.set('S', 13)
 		G.set('B', 5)
 		net.eval()
-		metrics, timer = Accumulator(2), Timer()
+		metrics, timer = Accumulator(7), Timer()
 		with torch.no_grad():
 			timer.start()
 
@@ -175,16 +179,20 @@ def train(net: nn.Module, train_iter: DataLoader, test_iter: DataLoader, num_epo
 				X, y = X.to(devices[0]), y.to(devices[0])
 				yhat = net(X)
 
-				loss_val = loss(yhat, y, 1000000) # very big epoch number to omit prior loss
-				metrics.add(loss_val.sum(), X.shape[0])
+				coord_loss, class_loss, no_obj_loss, obj_loss, prior_loss = loss(yhat, y, 1000000) # very big epoch number to omit prior loss
+				loss_val = coord_loss + class_loss + no_obj_loss + obj_loss + prior_loss
+				metrics.add(coord_loss.sum(), class_loss.sum(), no_obj_loss.sum(), obj_loss.sum(), prior_loss.sum(), loss_val.sum(), X.shape[0])
 
-				print(f'epoch {epoch} batch {i + 1}/{len(test_iter)} test loss: {metrics[0] / metrics[1]}')
+				print(f'epoch {epoch} batch {i + 1}/{len(test_iter)} test loss: {metrics[5] / metrics[6]}')
 
 			# log test loss
-			writer.add_scalars(f'loss/{log_id}', {
-				'test': metrics[0] / metrics[1],
-			}, (epoch + 1) * visualize_cnt)
-			
+			writer.add_scalars(f'loss/{log_id}/total', {'test': metrics[5] / metrics[6]}, (epoch + 1) * visualize_cnt)
+			writer.add_scalars(f'loss/{log_id}/coord', {'test': metrics[0] / metrics[6]}, (epoch + 1) * visualize_cnt)
+			writer.add_scalars(f'loss/{log_id}/class', {'test': metrics[1] / metrics[6]}, (epoch + 1) * visualize_cnt)
+			writer.add_scalars(f'loss/{log_id}/no_obj', {'test': metrics[2] / metrics[6]}, (epoch + 1) * visualize_cnt)
+			writer.add_scalars(f'loss/{log_id}/obj', {'test': metrics[3] / metrics[6]}, (epoch + 1) * visualize_cnt)
+			writer.add_scalars(f'loss/{log_id}/prior', {'test': metrics[4] / metrics[6]}, (epoch + 1) * visualize_cnt)
+
 			calc = metrics_utils.ObjectDetectionMetricsCalculator(G.get('num_classes'), 0.1)
 
 			for i, batch in enumerate(test_iter):

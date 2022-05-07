@@ -58,7 +58,7 @@ class YoloLoss(nn.Module):
 		self.epoch_prior = epoch_prior
 
 
-	def forward(self, yhat: torch.Tensor, y: torch.Tensor, epoch: int) -> torch.Tensor:
+	def forward(self, yhat: torch.Tensor, y: torch.Tensor, epoch: int) -> list[torch.Tensor]:
 		"""Calculate yolo loss.
 
 		Args:
@@ -67,7 +67,7 @@ class YoloLoss(nn.Module):
 			epoch (int): epoch.
 
 		Returns:
-			torch.Tensor: loss [#]
+			list[torch.Tensor]: [#] coord_loss, class_loss, no_obj_loss, obj_loss, prior_loss
 		"""
 		S = G.get('S')
 		B = G.get('B')
@@ -135,6 +135,4 @@ class YoloLoss(nn.Module):
 			prior_loss = prior_loss.sum(dim=(1, 2))
 		else: prior_loss = 0
 
-		# sum up
-		loss = coord_loss + class_loss + no_obj_loss + obj_loss + prior_loss
-		return loss
+		return coord_loss, class_loss, no_obj_loss, obj_loss, prior_loss
