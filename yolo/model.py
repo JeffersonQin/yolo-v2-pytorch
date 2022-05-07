@@ -140,10 +140,11 @@ class ResNetYoloDetector(nn.Module):
 		ksize //= 2
 
 		reshape = nn.Sequential(nn.Flatten(), nn.Unflatten(1, (256, ksize, ksize)))
-		pass_through = reshape(self.pass_through_head(pass_through_out))
+		pass_through_out = reshape(self.pass_through_head(pass_through_out))
+		resnet_out = self.resnet_head(resnet_out)
 
 		# concat resnet and pass_through
-		resnet_out = torch.cat((resnet_out, pass_through), dim=1)
+		resnet_out = torch.cat((resnet_out, pass_through_out), dim=1)
 		return self.tail(resnet_out)
 
 
