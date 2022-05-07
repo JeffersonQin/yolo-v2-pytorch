@@ -160,7 +160,7 @@ def train(net: nn.Module, train_iter: DataLoader, test_iter: DataLoader, num_epo
 
 		timer.stop()
 		# log train timing
-		writer.add_scalars(f'timing/{log_id}', {'train': timer.sum()}, epoch)
+		writer.add_scalars(f'timing/{log_id}', {'train': timer.sum()}, epoch + 1)
 
 		# save model
 		torch.save(net.state_dict(), os.path.join(save_dir, f'./{log_id}-epoch-{epoch}.pth'))
@@ -206,7 +206,7 @@ def train(net: nn.Module, train_iter: DataLoader, test_iter: DataLoader, num_epo
 			timer.stop()
 
 			# log test mAP
-			writer.add_scalars(f'mAP/VOC', {log_id: calc.calculate_VOCmAP()}, epoch)
+			writer.add_scalars(f'mAP/VOC', {log_id: calc.calculate_VOCmAP()}, epoch + 1)
 
 			# log test timing
-			writer.add_scalars(f'timing/{log_id}', {'test': timer.sum()}, epoch)
+			writer.add_scalars(f'timing/{log_id}', {'test': timer.sum()}, epoch + 1)
