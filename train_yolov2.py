@@ -4,6 +4,7 @@ import torch
 from utils import G
 from utils import data
 from utils.winit import weight_init
+from yolo.loss import YoloLoss
 from yolo.model import Darknet19Backbone, Darknet19Detection
 from yolo.train import train
 
@@ -53,4 +54,4 @@ if __name__ == '__main__':
 	detector.apply(weight_init)
 
 	# train
-	train(detector, train_iter, test_iter, num_epoch, lr, momentum, weight_decay, 'darknet19-no-pretrain', 1, accum_batch_num, './model', None, -1)
+	train(detector, train_iter, test_iter, num_epoch, lr, momentum, weight_decay, 'darknet19-no-pretrain', loss, 1, accum_batch_num, './model', None, -1)
