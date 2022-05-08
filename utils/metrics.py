@@ -3,6 +3,8 @@ from enum import Enum
 import numpy as np
 import torch
 
+from yolo.nms import YoloNMS
+
 from . import globalvar as G
 from yolo.converter import Yolo2BBox
 
@@ -221,6 +223,7 @@ class ObjectDetectionMetricsCalculator():
 			truth (torch.Tensor): ground truth (YOLO v2 format), can be either batch result or single result (#, S, S, (5+num_classes)*B) or (S, S, (5+num_classes)*B)
 		"""
 		converter = Yolo2BBox()
+		nms = YoloNMS()
 		
 		pred = converter(pred)
 		truth = converter(truth)
@@ -235,7 +238,7 @@ class ObjectDetectionMetricsCalculator():
 		cnt = pred.shape[0]
 
 		for i in range(cnt):
-			self._add_data(pred[i], truth[i])
+			self._add_data(nms(pred[i]), truth[i])
 
 
 	def calculate_precision_recall(self, iou_thres: float, class_idx: int) -> list:
