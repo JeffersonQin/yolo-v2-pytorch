@@ -173,11 +173,14 @@ def train(net: nn.Module, train_iter: DataLoader, test_iter: DataLoader, num_epo
 		with torch.no_grad():
 			timer.start()
 
+			calc = metrics_utils.ObjectDetectionMetricsCalculator(G.get('num_classes'), 0.1)
+
 			# test loss
 			for i, batch in enumerate(test_iter):
 				X, y = batch
 				X, y = X.to(devices[0]), y.to(devices[0])
 				yhat = net(X)
+				calc.add_data(yhat, y)
 
 				coord_loss, class_loss, no_obj_loss, obj_loss, prior_loss = loss(yhat, y, 1000000) # very big epoch number to omit prior loss
 				loss_val = coord_loss + class_loss + no_obj_loss + obj_loss + prior_loss
@@ -193,20 +196,10 @@ def train(net: nn.Module, train_iter: DataLoader, test_iter: DataLoader, num_epo
 			writer.add_scalars(f'loss/{log_id}/obj', {'test': metrics[3] / metrics[6]}, (epoch + 1) * visualize_cnt)
 			writer.add_scalars(f'loss/{log_id}/prior', {'test': metrics[4] / metrics[6]}, (epoch + 1) * visualize_cnt)
 
-			calc = metrics_utils.ObjectDetectionMetricsCalculator(G.get('num_classes'), 0.1)
-
-			for i, batch in enumerate(test_iter):
-				X, y = batch
-				X, y = X.to(devices[0]), y.to(devices[0])
-				yhat = net(X)
-				calc.add_data(yhat, y)
-
-				print(f'epoch {epoch} batch {i + 1}/{len(test_iter)} testing mAP')
-
-			timer.stop()
-
 			# log test mAP
 			writer.add_scalars(f'mAP/VOC', {log_id: calc.calculate_VOCmAP()}, epoch + 1)
+
+			timer.stop()
 
 			# log test timing
 			writer.add_scalars(f'timing/{log_id}', {'test': timer.sum()}, epoch + 1)
