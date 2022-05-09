@@ -166,7 +166,7 @@ def train(net: nn.Module, train_iter: DataLoader, test_iter: DataLoader, num_epo
 		torch.save(net.state_dict(), os.path.join(save_dir, f'./{log_id}-epoch-{epoch}.pth'))
 
 		# test!
-		G.set('S', 13)
+		G.set('S', 17)
 		G.set('B', 5)
 		net.eval()
 		metrics, timer = Accumulator(7), Timer()
