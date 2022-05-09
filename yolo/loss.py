@@ -78,6 +78,11 @@ class YoloLoss(nn.Module):
 		# pick first ground truth for each cell
 		y = y[:, :, :, [0], :].expand(-1, S, S, B, 5 + num_classes)
 
+		# width and height (reversed tw and th)
+		anchors = G.get('anchors').to(yhat.device)
+		wh_hat = torch.log((yhat[:, :, :, :, 2:4] / anchors) + 1e-16)
+		wh_true = torch.log((y[:, :, :, :, 2:4] / anchors) + 1e-16)
+
 		with torch.no_grad():
 			# convert data into bbox format for IoU calculation
 			converter = Yolo2BBox()
@@ -102,7 +107,9 @@ class YoloLoss(nn.Module):
 			_, res = IoU.max(dim=3, keepdim=True)
 
 		# pick responsible data
-		yhat_res = torch.take_along_dim(yhat, res.unsqueeze_(3), 3).squeeze(3)
+		yhat_res = torch.take_along_dim(yhat, res.unsqueeze(3), 3).squeeze(3)
+		wh_hat_res = torch.take_along_dim(wh_hat, res.unsqueeze(3), 3).squeeze(3)
+		wh_true_res = torch.take_along_dim(wh_true, res.unsqueeze(3), 3).squeeze(3)
 		y_res = y[:, :, :, 0, :]
 
 		with torch.no_grad():
@@ -112,7 +119,11 @@ class YoloLoss(nn.Module):
 
 		# calculate loss
 		# 1. coordinate loss
-		coord_loss = ((yhat_res[:, :, :, 0:4] - y_res[:, :, :, 0:4]) ** 2).sum(dim=3) \
+		# x and y
+		xy_hat = yhat_res[:, :, :, 0:2]
+		xy_y = y_res[:, :, :, 0:2]
+		# calculate loss
+		coord_loss = ((xy_hat - xy_y) ** 2 + (wh_hat_res - wh_true_res) ** 2).sum(dim=3) \
 			* have_obj * self.lambda_coord * (2 - y_res[:, :, :, 2] * y_res[:, :, :, 3])
 		coord_loss = coord_loss.sum(dim=(1, 2))
 		# 2. class loss
