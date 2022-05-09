@@ -179,3 +179,21 @@ class ResNet50YoloDetector(ResNetYoloDetector):
 
 	def forward(self, X):
 		return super(ResNet50YoloDetector, self).forward(X)
+
+
+class ResNet101YoloDetector(ResNetYoloDetector):
+	def __init__(self):
+		super(ResNet101YoloDetector, self).__init__(torchvision.models.resnet101(pretrained=True))
+
+
+	def forward(self, X):
+		return super(ResNet101YoloDetector, self).forward(X)
+
+
+class ResNet152YoloDetector(ResNetYoloDetector):
+	def __init__(self):
+		super(ResNet152YoloDetector, self).__init__(torchvision.models.resnet152(pretrained=True))
+
+
+	def forward(self, X):
+		return super(ResNet152YoloDetector, self).forward(X)
