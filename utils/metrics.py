@@ -110,7 +110,7 @@ class ObjectDetectionMetricsCalculator():
 		# [N, M]
 		intersection = wi * hi
 		union = (x2 - x1) * (y2 - y1) + (x2_hat - x1_hat) * (y2_hat - y1_hat) - intersection
-		IoU = intersection / (union + 1e-6)
+		IoU = intersection / (union + 1e-16)
 
 		for c in range(num_classes):
 			# filter out the detection with category not equal to c
@@ -174,7 +174,7 @@ class ObjectDetectionMetricsCalculator():
 				hi = max(0, hi)
 				intersection = wi * hi
 				union = (x2 - x1) * (y2 - y1) + (x2hat - x1hat) * (y2hat - y1hat) - intersection
-				this_iou = intersection / (union + 1e-6)
+				this_iou = intersection / (union + 1e-16)
 				# determine whether to choose this ground truth
 				if iou[i] is None: choose = True
 				elif iou[i] < this_iou: choose = True

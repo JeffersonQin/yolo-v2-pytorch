@@ -93,7 +93,7 @@ class YoloLoss(nn.Module):
 			intersection = wi * hi
 			union = (yhat_bbox[..., 2] - yhat_bbox[..., 0]) * (yhat_bbox[..., 3] - yhat_bbox[..., 1]) + \
 				(y_bbox[..., 2] - y_bbox[..., 0]) * (y_bbox[..., 3] - y_bbox[..., 1]) - intersection
-			IoU = intersection / (union + 1e-6)
+			IoU = intersection / (union + 1e-16)
 
 			# filter out IoU < IoU_thres
 			no_obj_iou = IoU < self.IoU_thres
