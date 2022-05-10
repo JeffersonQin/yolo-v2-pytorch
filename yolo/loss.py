@@ -78,11 +78,13 @@ class YoloLoss(nn.Module):
 				# convert data into bbox format for IoU calculation
 				converter = Yolo2BBox()
 
+				M = yhat.shape[0]
+
 				# half() is also used to save memory
 				# [#, S*S*B, 5+num_classes] => [#, S*S*B, 1, 5] => [#, S*S*B, S*S*B, 5]
-				yhat_bbox = converter(yhat).half()[..., 0:5].unsqueeze(2).expand(int(N / 2), S * S * B, S * S * B, 5)
+				yhat_bbox = converter(yhat).half()[..., 0:5].unsqueeze(2).expand(M, S * S * B, S * S * B, 5)
 				# [#, S*S*B, 5+num_classes] => [#, 1, S*S*B, 5] => [#, S*S*B, S*S*B, 5]
-				y_bbox = converter(y).half()[..., 0:5].unsqueeze(1).expand(int(N / 2), S * S * B, S * S * B, 5)
+				y_bbox = converter(y).half()[..., 0:5].unsqueeze(1).expand(M, S * S * B, S * S * B, 5)
 
 				def internal_get_intersection():
 					"""used to save memory."""
