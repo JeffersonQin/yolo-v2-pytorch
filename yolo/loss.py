@@ -17,17 +17,11 @@ class YoloLoss(nn.Module):
 		epoch_prior: int = 20):
 		"""Yolo loss.
 
-			The loss function in this version has still not yet solved the problem of 
-			multiple objects in one cell during training. There will be only one responsible 
-			bbox in one cell where there is object, and the IoU will only be calculated 
-			with one ground truth (no matter how many ground truths are there in one cell).
-
 			Modified version of:
 				https://www.cnblogs.com/YiXiaoZhou/p/7429481.html
 			Loss = 
 				# coordinate loss for responsible bbox
 				# prior box loss (used to learn shape of prior boxes)
-				#            => in other words, let t_w, t_h close to zero. (e^0 = 1)
 				# class loss for all bboxes with obj (using only one ground truth)
 				# objectness loss for bbox with best IoU less than IoU threshold
 				# objectness loss for responsible bbox
@@ -127,7 +121,7 @@ class YoloLoss(nn.Module):
 			* have_obj * self.lambda_coord * (2 - y_res[:, :, :, 2] * y_res[:, :, :, 3])
 		coord_loss = coord_loss.sum(dim=(1, 2))
 		# 2. class loss
-		class_loss = ((yhat[:, :, :, :, 5:] - y[:, :, :, :, 5:]) ** 2).sum(dim=(3, 4)) \
+		class_loss = ((yhat_res[:, :, :, 5:] - y_res[:, :, :, 5:]) ** 2).sum(dim=(3)) \
 			* have_obj * self.lambda_class
 		class_loss = class_loss.sum(dim=(1, 2))
 		# 3. no_obj loss
