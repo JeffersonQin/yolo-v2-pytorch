@@ -142,7 +142,7 @@ def train(net: nn.Module, train_iter: DataLoader, test_iter: DataLoader, num_epo
 				metrics.add(coord_loss.sum(), class_loss.sum(), no_obj_loss.sum(), obj_loss.sum(), prior_loss.sum(), loss_val.sum(), X.shape[0])
 
 			# log train loss
-			print(f'epoch {epoch} batch {i + 1}/{num_batches} loss: {metrics[5] / metrics[6]}')
+			print(f'epoch {epoch} batch {i + 1}/{num_batches} loss: {metrics[5] / metrics[6]}, S: {G.get("S")}, B: {G.get("B")}')
 			plot_indices = plot(i + 1, num_batches, visualize_cnt)
 			if plot_indices > 0:
 				writer.add_scalars(f'loss/{log_id}/total', {'train': metrics[5] / metrics[6],}, epoch * visualize_cnt + plot_indices)
@@ -155,7 +155,7 @@ def train(net: nn.Module, train_iter: DataLoader, test_iter: DataLoader, num_epo
 			# random choose a new image dimension size from
 			# [320, 352, 384, 416, 448, 480, 512, 544, 576, 608]
 			# that is, randomly adjust S between [10, 19]
-			if i % 10 == 0:
+			if (i - 1) % 10 == 0:
 				G.set('S', random.randint(10, 19))
 
 		timer.stop()
