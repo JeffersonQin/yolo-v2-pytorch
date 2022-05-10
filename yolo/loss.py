@@ -72,42 +72,56 @@ class YoloLoss(nn.Module):
 
 		N = yhat.shape[0]
 
+		def internal_function(yhat, y):
+			"""used to save memory."""
+			with torch.no_grad():
+				# convert data into bbox format for IoU calculation
+				converter = Yolo2BBox()
+
+				# half() is also used to save memory
+				# [#, S*S*B, 5+num_classes] => [#, S*S*B, 1, 5] => [#, S*S*B, S*S*B, 5]
+				yhat_bbox = converter(yhat).half()[..., 0:5].unsqueeze(2).expand(int(N / 2), S * S * B, S * S * B, 5)
+				# [#, S*S*B, 5+num_classes] => [#, 1, S*S*B, 5] => [#, S*S*B, S*S*B, 5]
+				y_bbox = converter(y).half()[..., 0:5].unsqueeze(1).expand(int(N / 2), S * S * B, S * S * B, 5)
+
+				def internal_get_intersection():
+					"""used to save memory."""
+					# calculate IoU
+					# [#, S*S*B, S*S*B]
+					wi = torch.min(yhat_bbox[..., 2], y_bbox[..., 2]) - torch.max(yhat_bbox[..., 0], y_bbox[..., 0])
+					wi = torch.max(wi, torch.zeros_like(wi))
+					hi = torch.min(yhat_bbox[..., 3], y_bbox[..., 3]) - torch.max(yhat_bbox[..., 1], y_bbox[..., 1])
+					hi = torch.max(hi, torch.zeros_like(hi))
+
+					# [#, S*S*B (YHat), S*S*B (Y)]
+					return wi * hi
+
+				intersection = internal_get_intersection()
+				union = (yhat_bbox[..., 2] - yhat_bbox[..., 0]) * (yhat_bbox[..., 3] - yhat_bbox[..., 1]) + \
+					(y_bbox[..., 2] - y_bbox[..., 0]) * (y_bbox[..., 3] - y_bbox[..., 1]) - intersection
+				IoU = intersection / (union + 1e-12)
+
+				# [#, S*S*B] => [#, S, S, B]
+				MaxIoU = IoU.max(dim=2, keepdim=False)[0].reshape(-1, S, S, B)
+				# filter out MaxIoU < IoU_thres
+				no_obj_iou = MaxIoU < self.IoU_thres
+
+				# [#, S*S*B (YHat), S*S*B (Y)] => [#, S*S*B (YHat), S*S*B (Y)]
+				IoU = torch.permute(IoU, [0, 2, 1])
+
+				_, idx = IoU.max(dim=2, keepdim=True)
+
+				return no_obj_iou, idx
+
+		no_obj_iou_1, idx_1 = internal_function(yhat[0:int(N / 2)], y[0:int(N / 2)])
+		no_obj_iou_2, idx_2 = internal_function(yhat[int(N / 2):], y[int(N / 2):])
+		no_obj_iou = torch.cat([no_obj_iou_1, no_obj_iou_2], dim=0)
+		idx = torch.cat([idx_1, idx_2], dim=0)
+
 		# width and height (reversed tw and th)
 		anchors = G.get('anchors').to(yhat.device)
 		wh_hat = torch.log((yhat[:, :, :, :, 2:4] / anchors) + 1e-16)
 		wh_true = torch.log((y[:, :, :, :, 2:4] / anchors) + 1e-16)
-
-		with torch.no_grad():
-			# convert data into bbox format for IoU calculation
-			converter = Yolo2BBox()
-
-			# [#, S*S*B, 5+num_classes] => [#, S*S*B, 1, 5+num_classes] => [#, S*S*B, S*S*B, 5+num_classes]
-			yhat_bbox = converter(yhat).unsqueeze(2).expand(N, S * S * B, S * S * B, 5 + num_classes)
-			# [#, S*S*B, 5+num_classes] => [#, 1, S*S*B, 5+num_classes] => [#, S*S*B, S*S*B, 5+num_classes]
-			y_bbox = converter(y).unsqueeze(1).expand(N, S * S * B, S * S * B, 5 + num_classes)
-
-			# calculate IoU
-			# [#, S*S*B, S*S*B]
-			wi = torch.min(yhat_bbox[..., 2], y_bbox[..., 2]) - torch.max(yhat_bbox[..., 0], y_bbox[..., 0])
-			wi = torch.max(wi, torch.zeros_like(wi))
-			hi = torch.min(yhat_bbox[..., 3], y_bbox[..., 3]) - torch.max(yhat_bbox[..., 1], y_bbox[..., 1])
-			hi = torch.max(hi, torch.zeros_like(hi))
-
-			# [#, S*S*B (YHat), S*S*B (Y)]
-			intersection = wi * hi
-			union = (yhat_bbox[..., 2] - yhat_bbox[..., 0]) * (yhat_bbox[..., 3] - yhat_bbox[..., 1]) + \
-				(y_bbox[..., 2] - y_bbox[..., 0]) * (y_bbox[..., 3] - y_bbox[..., 1]) - intersection
-			IoU = intersection / (union + 1e-16)
-
-			# [#, S*S*B] => [#, S, S, B]
-			MaxIoU = IoU.max(dim=2, keepdim=False)[0].reshape(-1, S, S, B)
-			# filter out MaxIoU < IoU_thres
-			no_obj_iou = MaxIoU < self.IoU_thres
-
-			# [#, S*S*B (YHat), S*S*B (Y)] => [#, S*S*B (YHat), S*S*B (Y)]
-			IoU = torch.permute(IoU, [0, 2, 1])
-
-			_, idx = IoU.max(dim=2, keepdim=True)
 
 		# pick responsible data
 		# ground truth (y) remain the same
