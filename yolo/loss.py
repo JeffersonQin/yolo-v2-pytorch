@@ -115,10 +115,31 @@ class YoloLoss(nn.Module):
 
 				return no_obj_iou, idx
 
-		no_obj_iou_1, idx_1 = internal_function(yhat[0:int(N / 2)], y[0:int(N / 2)])
-		no_obj_iou_2, idx_2 = internal_function(yhat[int(N / 2):], y[int(N / 2):])
-		no_obj_iou = torch.cat([no_obj_iou_1, no_obj_iou_2], dim=0)
-		idx = torch.cat([idx_1, idx_2], dim=0)
+		def obtain_by_crop(crop) -> list[torch.Tensor]:
+			"""Obtain no_obj_iou by cropping down batch, used to enable large batch training
+
+			Args:
+				crop (int): crop count
+
+			Returns:
+				list[torch.Tensor]: no_obj_iou and idx
+			"""
+			no_obj_iou = torch.tensor([], dtype=torch.bool).to(yhat.device)
+			idx = torch.tensor([], dtype=torch.int64).to(yhat.device)
+			for i in range(crop):
+				no_obj_iou_i, idx_i = internal_function(yhat[int(i * N / crop):int((i + 1) * N / crop)], 
+														y[int(i * N / crop):int((i + 1) * N / crop)])
+				no_obj_iou = torch.cat([no_obj_iou, no_obj_iou_i], dim=0)
+				idx = torch.cat([idx, idx_i], dim=0)
+			
+			return no_obj_iou, idx
+
+		if S == 19:
+			crop = 3
+		else:
+			crop = 1
+		
+		no_obj_iou, idx = obtain_by_crop(crop)
 
 		# width and height (reversed tw and th)
 		anchors = G.get('anchors').to(yhat.device)
