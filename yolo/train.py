@@ -12,7 +12,7 @@ from utils import G
 from yolo.loss import YoloLoss
 
 
-def train(net: nn.Module, train_iter: DataLoader, test_iter: DataLoader, num_epochs: int, lr, momentum: float, weight_decay: float, log_id: str, loss=YoloLoss(), num_gpu: int=1, accum_batch_num: int=1, save_dir: str='./model', load: Optional[str]=None, load_epoch: int=-1, visualize_cnt: int=10):
+def train(net: nn.Module, train_iter: DataLoader, test_iter: DataLoader, num_epochs: int, multi_scale_epoch: int, output_scale_S: int, lr, optimizer: torch.optim.Optimizer, log_id: str, loss=YoloLoss(), num_gpu: int=1, accum_batch_num: int=1, save_dir: str='./model', load_model: Optional[str]=None, load_optim: Optional[str]=None, load_epoch: int=-1, visualize_cnt: int=10):
 	"""trainer for yolo v2. 
 	Note: weight init is not done in this method, because the architecture
 	of yolo v2 is rather complicated with the design of pass through layer
@@ -22,15 +22,17 @@ def train(net: nn.Module, train_iter: DataLoader, test_iter: DataLoader, num_epo
 		train_iter (DataLoader): training dataset iterator
 		test_iter (DataLoader): testing dataset iterator
 		num_epochs (int): number of epochs to train
+		multi_scale_epoch (int): number of epochs to train with multi scale
+		output_scale_S (int): final network scale (S), input size will be 32S * 32S, as the network stride is 32
 		lr (float | callable): learning rate or learning rate scheduler function relative to epoch
-		momentum (float): momentum for optimizer
-		weight_decay (float): weight decay for optimizer
+		optimizer (torch.optim.Optimizer): optimizer
 		log_id (str): identifier for logging in tensorboard.
 		loss (YoloLoss): loss function
 		num_gpu (int, optional): number of gpu to train on, used for parallel training. Defaults to 1.
 		accum_batch_num (int, optional): number of batch to accumulate gradient, used to solve OOM problem when using big batch sizes. Defaults to 1.
 		save_dir (str, optional): saving directory for model weights. Defaults to './model'.
-		load (Optional[str], optional): path of model weights to load if exist. Defaults to None.
+		load_model (Optional[str], optional): path of model weights to load if exist. Defaults to None.
+		load_optim (Optional[str], optional): path of optimizer state_dict to load if exist. Defaults to None.
 		load_epoch (int, optional): done epoch count minus one when loading, should be the same with the number in auto-saved file name. Defaults to -1.
 		visualize_cnt (int, optional): number of batches to visualize each epoch during training progress. Defaults to 10.
 	"""
@@ -38,10 +40,11 @@ def train(net: nn.Module, train_iter: DataLoader, test_iter: DataLoader, num_epo
 
 	# tensorboard
 	writer = tensorboard.SummaryWriter(f'logs/yolo')
+	pr_writer = tensorboard.SummaryWriter(f'logs/yolo/pr/{log_id}')
 
 	# set up loading
-	if load:
-		net.load_state_dict(torch.load(load))
+	if load_model:
+		net.load_state_dict(torch.load(load_model))
 
 	# set up devices
 	if not torch.cuda.is_available():
@@ -55,11 +58,8 @@ def train(net: nn.Module, train_iter: DataLoader, test_iter: DataLoader, num_epo
 			net = net.to(torch.device('cuda'))
 			devices = [torch.device('cuda')]
 
-	# set up optimizer
-	if isinstance(lr, float):
-		tlr = lr
-	else: tlr = 0.001
-	optimizer = torch.optim.SGD(net.parameters(), tlr, momentum=momentum, weight_decay=weight_decay)
+	if load_optim:
+		optimizer.load_state_dict(torch.load(load_optim))
 
 	num_batches = len(train_iter)
 
@@ -155,18 +155,22 @@ def train(net: nn.Module, train_iter: DataLoader, test_iter: DataLoader, num_epo
 			# random choose a new image dimension size from
 			# [320, 352, 384, 416, 448, 480, 512, 544, 576, 608]
 			# that is, randomly adjust S between [10, 19]
-			if (i + 1) % 10 == 0:
+			if (i + 1) % 10 == 0 and epoch < multi_scale_epoch:
 				G.set('S', random.randint(10, 19))
+			elif epoch >= multi_scale_epoch:
+				G.set('S', output_scale_S)
 
 		timer.stop()
 		# log train timing
 		writer.add_scalars(f'timing/{log_id}', {'train': timer.sum()}, epoch + 1)
 
 		# save model
-		torch.save(net.state_dict(), os.path.join(save_dir, f'./{log_id}-epoch-{epoch}.pth'))
+		torch.save(net.state_dict(), os.path.join(save_dir, f'./{log_id}-model-{epoch}.pth'))
+		# save optim
+		torch.save(optimizer.state_dict(), os.path.join(save_dir, f'./{log_id}-optim-{epoch}.pth'))
 
 		# test!
-		G.set('S', 17)
+		G.set('S', output_scale_S)
 		G.set('B', 5)
 		net.eval()
 		metrics, timer = Accumulator(7), Timer()
@@ -196,8 +200,21 @@ def train(net: nn.Module, train_iter: DataLoader, test_iter: DataLoader, num_epo
 			writer.add_scalars(f'loss/{log_id}/obj', {'test': metrics[3] / metrics[6]}, (epoch + 1) * visualize_cnt)
 			writer.add_scalars(f'loss/{log_id}/prior', {'test': metrics[4] / metrics[6]}, (epoch + 1) * visualize_cnt)
 
-			# log test mAP
-			writer.add_scalars(f'mAP/VOC', {log_id: calc.calculate_VOCmAP()}, epoch + 1)
+			# log test mAP & PR Curve
+			mAP = 0
+			for c in range(G.get('num_classes')):
+				pr_data = calc.calculate_precision_recall(0.5, c)
+				p = torch.zeros(len(pr_data)) # precision
+				r = torch.zeros(len(pr_data)) # recall
+				z = torch.zeros(len(pr_data)) # dummy data
+				for i, pr in enumerate(pr_data):
+					p[i] = pr['precision']
+					r[i] = pr['recall']
+				pr_writer.add_pr_curve_raw(f'PR/{G.get("categories")[c]}', z, z, z, z, p, r, epoch + 1, len(pr_data))
+				# calculate VOC mAP
+				mAP += calc.calculate_average_precision(metrics_utils.InterpolationMethod.Interpolation_11, prl=pr_data)
+			mAP /= G.get('num_classes')
+			writer.add_scalars(f'mAP/VOC', {log_id: mAP}, epoch + 1)
 
 			timer.stop()
 
