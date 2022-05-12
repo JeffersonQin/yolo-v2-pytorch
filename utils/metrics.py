@@ -1,5 +1,6 @@
 from functools import cmp_to_key
 from enum import Enum
+from typing import Optional
 import numpy as np
 import torch
 
@@ -269,18 +270,20 @@ class ObjectDetectionMetricsCalculator():
 		return ret
 
 
-	def calculate_average_precision(self, iou_thres: float, class_idx: int, itpl_option: InterpolationMethod) -> float:
+	def calculate_average_precision(self, itpl_option: InterpolationMethod, iou_thres: Optional[float]=None, class_idx: Optional[int]=None, prl: Optional[list]=None) -> float:
 		"""Calculate Average Precision (AP)
 
 		Args:
-			iou_thres (float): IoU Threshold
-			class_idx (int): Class Index
 			itpl_option (InterpolationMethod): Interpolation Method
+			iou_thres (float | None): IoU Threshold [Optional if given prl]
+			class_idx (int | None): Class Index [Optional if given prl]
+			prl (list | None): Precision-Recall Data [Optional if given iou_thres and class_idx]
 
 		Returns:
 			float: AP of specified class using provided interpolation method
 		"""
-		prl = self.calculate_precision_recall(iou_thres=iou_thres, class_idx=class_idx)
+		if prl is None:
+			prl = self.calculate_precision_recall(iou_thres=iou_thres, class_idx=class_idx)
 
 		if itpl_option == InterpolationMethod.Interpolation_11:
 			intp_pts = [0.1 * i for i in range(11)]
@@ -342,7 +345,7 @@ class ObjectDetectionMetricsCalculator():
 		"""
 		mAP = 0
 		for c in range(len(self.data)):
-			mAP += self.calculate_average_precision(iou_thres, c, itpl_option)
+			mAP += self.calculate_average_precision(iou_thres=iou_thres, class_idx=c, itpl_option=itpl_option)
 		mAP /= len(self.data)
 
 		return mAP
