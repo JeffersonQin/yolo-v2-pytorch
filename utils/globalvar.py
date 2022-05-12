@@ -6,7 +6,7 @@ import torch
 __all__ = ['init', 'set', 'get']
 
 
-def init(S=13, B=5):
+def init(S=19, B=5):
 	"""Init the global variables"""
 	global global_dict
 	global_dict = {}
