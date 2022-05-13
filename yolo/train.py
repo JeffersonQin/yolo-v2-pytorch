@@ -206,11 +206,14 @@ def train(net: nn.Module, train_iter: DataLoader, test_iter: DataLoader, num_epo
 				pr_data = calc.calculate_precision_recall(0.5, c)
 				p = torch.zeros(len(pr_data)) # precision
 				r = torch.zeros(len(pr_data)) # recall
-				z = torch.zeros(len(pr_data)) # dummy data
+				z1 = torch.randint(0, len(pr_data), (len(pr_data),)) # dummy data
+				z2 = torch.randint(0, len(pr_data), (len(pr_data),)) # dummy data
+				z3 = torch.randint(0, len(pr_data), (len(pr_data),)) # dummy data
+				z4 = torch.randint(0, len(pr_data), (len(pr_data),)) # dummy data
 				for i, pr in enumerate(pr_data):
 					p[i] = pr['precision']
 					r[i] = pr['recall']
-				pr_writer.add_pr_curve_raw(f'PR/{G.get("categories")[c]}', z, z, z, z, p, r, epoch + 1, len(pr_data))
+				pr_writer.add_pr_curve_raw(f'PR/{G.get("categories")[c]}', z1, z2, z3, z4, p, r, epoch + 1, len(pr_data))
 				# calculate VOC mAP
 				mAP += calc.calculate_average_precision(metrics_utils.InterpolationMethod.Interpolation_11, prl=pr_data)
 			mAP /= G.get('num_classes')
