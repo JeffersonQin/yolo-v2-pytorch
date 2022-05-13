@@ -91,7 +91,7 @@ def load_data() -> torch.Tensor:
 		torch.Tensor: [#, 2] (W, H)
 	"""
 	# load dataset
-	train_iter, _ = load_data_voc(1024, train_shuffle=False, data_augmentation=False)
+	train_iter, _ = load_data_voc(1024, train_shuffle=False, data_augmentation=False, pin_memory=False)
 
 	# define ret
 	Y = torch.Tensor()
