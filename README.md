@@ -12,6 +12,7 @@ Besides, compared with the [YOLO v1 I implemented](https://github.com/JeffersonQ
 .
 ├── kmeans.py             # script to calculate prior box on VOC train dataset
 ├── train_yolov2.py       # train yolo v2 Darknet19 (w/o pretrain)
+├── train_resnet18.py     # train yolo v2 ResNet18 (w/ pretrain)
 ├── utils                 # utils
 │   ├── __init__.py
 │   ├── data.py           # data pipeline, augmentation
@@ -29,17 +30,31 @@ Besides, compared with the [YOLO v1 I implemented](https://github.com/JeffersonQ
     └── train.py          # trainer
 ```
 
+Note: in this repo I no longer use Jupyter Notebook as it is heavy and not easy to manipulate. From now on, the data visualization are implemented through [tensorboard](https://pytorch.org/docs/stable/tensorboard.html). The default log dir is `./logs`
+
+Tensorboard installation:
+
+```bash
+pip install tensorboard
+```
+
+Check tensorboard:
+
+```bash
+tensorboard --logdir ./logs
+```
+
 ## YOLO v2 Features
 
 * ✅: Implemented and used
 * ❌: Not implemented
 * \*: Not available for other backbones
 
-|       Tricks        | Used  |
-| :-----------------: | :---: |
-|      BatchNorm      |   ✅   |
-|  Hi-Res Classifier  |   ❌   |
-|    Convolutional    |   ✅   |
+|   Tricks in Paper   | Used  |        Additional Tricks         | Used  |
+| :-----------------: | :---: | :------------------------------: | :---: |
+|      BatchNorm      |   ✅   |      Gradient Accumulation       |   ✅   |
+|  Hi-Res Classifier  |   ❌   | ResNet Backbone with Passthrough |   ✅   |
+|    Convolutional    |   ✅   |    Global Responsible in Loss    |   ✅   |
 |     Anchor Box      |   ✅   |
 |     New Network     |  ✅*   |
 |   Dimension Prior   |   ✅   |
@@ -80,6 +95,18 @@ Here are some explanation.
 * Prior box loss. Used to study the shape of anchor boxes in the first 12800 iterations.
   * https://github.com/AlexeyAB/darknet/blob/573d7e80814a4cc3c08897f6c0f67ea189339856/src/region_layer.c#L279-L290
 
+Furthermore, the loss implementation in this repo has solved the problem of multiple instance in one single cell by calculation global IoU and performing global responsible object selection algorithm.
+
+## Performance
+
+|         Model          | Backbone | mAP@VOC2012-val | COCOmAP@VOC2012-val | FPS@RTX2070s |
+| :--------------------: | :------: | :-------------: | :-----------------: | :----------: |
+| YOLOv2-ResNet18 (Ours) | ResNet18 |     47.33%      |       23.02%        |    62.20     |
+
+It may seem that there is little or no enhancement in performance compared with YOLO v1. However, if we check the precision-recall curve carefully, we can see tremendous improvement in global recall for each category. The following image shows the increment in recall of YOLOv2-ResNet18 compared with my YOLOv1-ResNet18.
+
+![](assets/resnet18-recall.png)
+
 ## About Dimension Prior
 
 <div align="center">
@@ -93,6 +120,61 @@ If you want to run it by yourself, simply try
 ```
 python kmeans.py
 ```
+
+## Training
+
+ResNet18
+
+```
+python train_resnet18.py
+```
+
+Note: similar to [my YOLO v1 implementation](https://github.com/JeffersonQin/yolo-v1-pytorch), you should add `download=True` to `load_data_voc` in the training scripts for the first time if the datasets are not ready.
+
+Here are some diagrams.
+
+![](assets/resnet18-loss.png)
+
+## Testing
+
+ResNet18
+
+```
+python test_resnet18.py
+```
+
+## Troubleshooting
+
+The following problem may caused by lack of memory. Try setting `S`, `batch_size` smaller or `crop` bigger.
+
+```
+Traceback (most recent call last):
+  File "C:\Users\JeffersonQin\Desktop\yolo-v2-pytorch\train_resnet18.py", line 59, in <module>
+    train(detector, train_iter, test_iter, num_epoch, multi_scale_epoch, output_scale_S, lr, optimizer, 'resnet18-pretrained-sgd', loss, 1, accum_batch_num, './model', './model/resnet18-pretrained-sgd-model-86.pth', './model/resnet18-pretrained-sgd-optim-86.pth', 86)
+  File "C:\Users\JeffersonQin\Desktop\yolo-v2-pytorch\yolo\train.py", line 123, in train
+    loss_val.sum().backward()
+  File "C:\Users\JeffersonQin\AppData\Local\Programs\Python\Python39\lib\site-packages\torch\_tensor.py", line 363, in backward
+    torch.autograd.backward(self, gradient, retain_graph, create_graph, inputs=inputs)
+  File "C:\Users\JeffersonQin\AppData\Local\Programs\Python\Python39\lib\site-packages\torch\autograd\__init__.py", line 173, in backward
+    Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+RuntimeError: Unable to find a valid cuDNN algorithm to run convolution
+```
+
+Example of setting `S` smaller:
+
+```python
+G.set('S', 17)
+```
+
+Here you can optimizing `crop` strategy:
+
+* https://github.com/JeffersonQin/yolo-v2-pytorch/blob/7826530c4d6df3e4d5ceeca3bd30123a5d1126c9/yolo/loss.py#L137-L140
+
+Tuning `batch_size` and `accum_batch_num`:
+
+* https://github.com/JeffersonQin/yolo-v2-pytorch/blob/7826530c4d6df3e4d5ceeca3bd30123a5d1126c9/train_resnet18.py#L20-L21
+
+If you have any *problems* or *questions*, feel free to ask and open issues.
 
 ## Thanks
 
