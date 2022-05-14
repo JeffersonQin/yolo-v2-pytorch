@@ -110,6 +110,11 @@ class VOCDataset(data.Dataset):
 			xmax = obj['bndbox']['xmax']
 			ymax = obj['bndbox']['ymax']
 			name = obj['name']
+			difficult = (obj['difficult'] == '1')
+			if difficult:
+				iou = 1.0000001
+			else:
+				iou = 1.0
 
 			if xmin == xmax or ymin == ymax:
 				continue
@@ -133,7 +138,7 @@ class VOCDataset(data.Dataset):
 			label[yidx][xidx][int(1 + (5 + num_classes) * obj_cnt[yidx][xidx])] = y * S - yidx
 			label[yidx][xidx][int(2 + (5 + num_classes) * obj_cnt[yidx][xidx])] = w
 			label[yidx][xidx][int(3 + (5 + num_classes) * obj_cnt[yidx][xidx])] = h
-			label[yidx][xidx][int(4 + (5 + num_classes) * obj_cnt[yidx][xidx])] = 1
+			label[yidx][xidx][int(4 + (5 + num_classes) * obj_cnt[yidx][xidx])] = iou
 			label[yidx][xidx][int(5 + (5 + num_classes) * obj_cnt[yidx][xidx] + G.get('categories').index(name))] = 1
 
 			obj_cnt[yidx][xidx] += 1

@@ -19,17 +19,19 @@ class InterpolationMethod(Enum):
 
 
 class CalculationMetrics():
-	def __init__(self, IoU: float, confidence: float, mustbe_FP: bool):
+	def __init__(self, IoU: float, confidence: float, mustbe_FP: bool, is_difficult: bool):
 		"""Initialization for `CalculationMetrics`
 
 		Args:
 			IoU (float): intersection over union with ground truth
 			confidence (float): detection confidence
 			mustbe_FP (bool): if there is already another detection having higher IoU with the same ground truth, then this detection must be False Positive
+			is_difficult (bool): if the according ground truth is difficult
 		"""
 		self.IoU = IoU
 		self.confidence = confidence
 		self.mustbe_FP = mustbe_FP
+		self.is_difficult = is_difficult
 
 
 def compare_metrics(metrics1: CalculationMetrics, metrics2: CalculationMetrics):
@@ -88,6 +90,8 @@ class ObjectDetectionMetricsCalculator():
 		truth = truth[truth[:, 4] > 0]
 		# obtain the ground truth category
 		_, cat_truth = truth[:, 5:(5 + num_classes)].max(dim=1)
+		# obtain the difficult ground truth (they are encoded 1+1e-7)
+		truth_difficult = truth[:, 4] > 1
 
 		# obtain size
 		N = pred.shape[0]
@@ -118,13 +122,15 @@ class ObjectDetectionMetricsCalculator():
 			pred_cat_idx = (cat_hat == c)
 			truth_cat_idx = (cat_truth == c)
 
+			category_difficult = truth_difficult[truth_cat_idx]
+
 			# update ground truth
-			self.data[c]['truth'] += int(truth_cat_idx.sum())
+			self.data[c]['truth'] += int(truth_cat_idx.sum()) - int(category_difficult.sum())
 
 			if pred_cat_idx.sum() == 0: continue
 			if truth_cat_idx.sum() == 0:
 				for conf in prob_hat[pred_cat_idx]:
-					self.data[c]['data'].append(CalculationMetrics(IoU=0, confidence=float(conf), mustbe_FP=True))
+					self.data[c]['data'].append(CalculationMetrics(IoU=0, confidence=float(conf), mustbe_FP=True, is_difficult=False))
 				continue
 
 			mustbe_FP = torch.zeros((truth_cat_idx.count_nonzero()), dtype=torch.bool, device=pred.device)
@@ -139,7 +145,7 @@ class ObjectDetectionMetricsCalculator():
 
 			for j in sort_idx:
 				# add data
-				self.data[c]['data'].append(CalculationMetrics(float(IoU_C_max[j]), float(prob_hat[pred_cat_idx][j]), bool(mustbe_FP[truth_idx[j]])))
+				self.data[c]['data'].append(CalculationMetrics(float(IoU_C_max[j]), float(prob_hat[pred_cat_idx][j]), bool(mustbe_FP[truth_idx[j]]), bool(category_difficult[truth_idx[j]])))
 				# update must be False Positive (FP)
 				mustbe_FP[truth_idx[j]] = True
 				# update detection
@@ -257,16 +263,20 @@ class ObjectDetectionMetricsCalculator():
 		truth_cnt = self.data[class_idx]['truth']
 		# accumulated TP
 		acc_TP = 0
+		# accumulated difficult count
+		acc_difficult = 0
 		# sort metrics by confidence
 		data = sorted(self.data[class_idx]['data'], key=cmp_to_key(compare_metrics))
 		for i, metrics in enumerate(data):
-			if metrics.IoU >= iou_thres and not metrics.mustbe_FP:
+			if metrics.IoU >= iou_thres and not metrics.mustbe_FP and not metrics.is_difficult:
 				acc_TP += 1
-			ret.append({
-				'precision': acc_TP / (i + 1),
-				'recall': acc_TP / truth_cnt
-			})
-		
+			if metrics.is_difficult:
+				acc_difficult += 1
+			if i + 1 - acc_difficult > 0:
+				ret.append({
+					'precision': acc_TP / (i + 1 - acc_difficult),
+					'recall': acc_TP / truth_cnt
+				})
 		return ret
 
 
