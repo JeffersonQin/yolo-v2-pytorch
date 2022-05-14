@@ -17,17 +17,19 @@ numpy.random.seed(seed)
 G.init()
 
 # define hyper parameters
-batch_size = 16
-accum_batch_num = 4
+batch_size = 32
+accum_batch_num = 2
 num_epoch = 160
+multi_scale_epoch = 90
+output_scale_S = 17
 weight_decay = 0.0005
 momentum = 0.9
-lambda_coord = 2.0
-lambda_noobj = 0.2
-lambda_obj = 10.0
-lambda_class = 0.5
+lambda_coord = 1.0
+lambda_noobj = 1.0
+lambda_obj = 5.0
+lambda_class = 1.0
 lambda_prior = 0.01
-IoU_thres = 0.5
+IoU_thres = 0.6
 epoch_prior = 20
 
 # learning rate scheduler
@@ -51,5 +53,7 @@ if __name__ == '__main__':
 	# weight init
 	detector.winit()
 
+	optimizer = torch.optim.SGD(detector.parameters(), lr=lr(0), weight_decay=weight_decay, momentum=momentum)
+
 	# train
-	train(detector, train_iter, test_iter, num_epoch, lr, momentum, weight_decay, 'resnet18-pretrained', loss, 1, accum_batch_num, './model', None, -1)
+	train(detector, train_iter, test_iter, num_epoch, multi_scale_epoch, output_scale_S, lr, optimizer, 'resnet18-pretrained-sgd', loss, 1, accum_batch_num, './model', None, None, -1)
