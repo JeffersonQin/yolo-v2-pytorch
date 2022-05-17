@@ -156,7 +156,11 @@ def train(net: nn.Module, train_iter: DataLoader, test_iter: DataLoader, num_epo
 			# [320, 352, 384, 416, 448, 480, 512, 544, 576, 608]
 			# that is, randomly adjust S between [10, 19]
 			if (i + 1) % 10 == 0 and epoch < multi_scale_epoch:
-				G.set('S', random.randint(10, 19))
+				# make last two batches to adjust S
+				if i + 21 >= num_batches:
+					G.set('S', output_scale_S)
+				else:
+					G.set('S', random.randint(10, 19))
 			elif epoch >= multi_scale_epoch:
 				G.set('S', output_scale_S)
 
