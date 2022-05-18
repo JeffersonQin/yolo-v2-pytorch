@@ -28,6 +28,7 @@ class YoloNMS(nn.Module):
 		with torch.no_grad():
 			num_classes = G.get('num_classes')
 
-			nms_idx = torchvision.ops.batched_nms(X[:, 0:4], X[:, 4], X[:, 5:(5 + num_classes)].max(dim=1)[0], self.iou_threshold)
+			score, cat = X[:, 5:(5 + num_classes)].max(dim=1)
+			nms_idx = torchvision.ops.batched_nms(X[:, 0:4], X[:, 4] * score, cat, self.iou_threshold)
 
 			return X[nms_idx]

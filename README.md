@@ -106,12 +106,10 @@ Furthermore, the loss implementation in this repo has solved the problem of mult
 | :---------------------: | :-----: | :-------: | :-------------: | :-----------------: | :----------: |
 | YOLOv1-ResNet18 (Ours)  | 448x448 | ResNet18  |     48.10%      |       23.18%        |  **97.88**   |
 | YOLOv1-ResNet50 (Ours)  | 448x448 | ResNet50  |     49.87%      |       23.95%        |    58.40     |
-| YOLOv2-ResNet18 (Ours)  | 544x544 | ResNet18  |     47.33%      |       23.02%        |    62.20     |
-| YOLOv2-ResNet101 (Ours) | 544x544 | ResNet101 |   **57.31%**    |     **30.90%**      |    28.34     |
+| YOLOv2-ResNet18 (Ours)  | 544x544 | ResNet18  |     56.26%      |       27.12%        |    76.83     |
+| YOLOv2-ResNet101 (Ours) | 544x544 | ResNet101 |   **64.40%**    |     **35.06%**      |    28.92     |
 
-It may seem that there is little or no enhancement in performance compared with YOLO v1. However, if we check the precision-recall curve carefully, we can see tremendous improvement in global recall for each category. The following image shows the increment in recall of YOLOv2-ResNet18 compared with my YOLOv1-ResNet18.
-
-![](assets/resnet18-recall.png)
+2022/05/18 Update: I fixed a bug in the NMS (Non-maximum suppression) module of the model, and increased the mAP astonishingly for more than 7%. However here also comes the sad news. The model selection done in the current stage is based on the previous buggy code. As a student with poor experiment conditions, the parameter adjustion and model selection cost me for more than a week, so ... no new trained weights would be released, and I will put my efforts on YOLO v3 and later models.
 
 ## About Dimension Prior
 

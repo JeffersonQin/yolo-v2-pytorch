@@ -84,10 +84,10 @@ class Yolo2BBox(nn.Module):
 			x = (X[..., 0] + cell_xidx) / S
 			y = (X[..., 1] + cell_yidx) / S
 
-			x1 = x - X[..., 2] / 2.0
-			y1 = y - X[..., 3] / 2.0
-			x2 = x + X[..., 2] / 2.0
-			y2 = y + X[..., 3] / 2.0
+			x1 = torch.max(x - X[..., 2] / 2.0, torch.zeros_like(x))
+			y1 = torch.max(y - X[..., 3] / 2.0, torch.zeros_like(y))
+			x2 = torch.min(x + X[..., 2] / 2.0, torch.ones_like(x))
+			y2 = torch.min(y + X[..., 3] / 2.0, torch.ones_like(y))
 
 			XC = X.clone()
 
