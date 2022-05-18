@@ -13,6 +13,9 @@ Besides, compared with the [YOLO v1 I implemented](https://github.com/JeffersonQ
 ├── kmeans.py             # script to calculate prior box on VOC train dataset
 ├── train_yolov2.py       # train yolo v2 Darknet19 (w/o pretrain)
 ├── train_resnet18.py     # train yolo v2 ResNet18 (w/ pretrain)
+├── test_resnet18.py      # test yolo v2 ResNet18 (w/ pretrain)
+├── train_resnet101.py    # train yolo v2 ResNet101 (w/ pretrain)
+├── test_resnet101.py     # test yolo v2 ResNet101 (w/ pretrain)
 ├── utils                 # utils
 │   ├── __init__.py
 │   ├── data.py           # data pipeline, augmentation
@@ -99,9 +102,12 @@ Furthermore, the loss implementation in this repo has solved the problem of mult
 
 ## Performance
 
-|         Model          | Backbone | mAP@VOC2012-val | COCOmAP@VOC2012-val | FPS@RTX2070s |
-| :--------------------: | :------: | :-------------: | :-----------------: | :----------: |
-| YOLOv2-ResNet18 (Ours) | ResNet18 |     47.33%      |       23.02%        |    62.20     |
+|          Model          |  Size   | Backbone  | mAP@VOC2012-val | COCOmAP@VOC2012-val | FPS@RTX2070s |
+| :---------------------: | :-----: | :-------: | :-------------: | :-----------------: | :----------: |
+| YOLOv1-ResNet18 (Ours)  | 448x448 | ResNet18  |     48.10%      |       23.18%        |  **97.88**   |
+| YOLOv1-ResNet50 (Ours)  | 448x448 | ResNet50  |     49.87%      |       23.95%        |    58.40     |
+| YOLOv2-ResNet18 (Ours)  | 544x544 | ResNet18  |     47.33%      |       23.02%        |    62.20     |
+| YOLOv2-ResNet101 (Ours) | 544x544 | ResNet101 |   **57.31%**    |     **30.90%**      |    28.34     |
 
 It may seem that there is little or no enhancement in performance compared with YOLO v1. However, if we check the precision-recall curve carefully, we can see tremendous improvement in global recall for each category. The following image shows the increment in recall of YOLOv2-ResNet18 compared with my YOLOv1-ResNet18.
 
@@ -129,6 +135,12 @@ ResNet18
 python train_resnet18.py
 ```
 
+ResNet101
+
+```
+python train_resnet101.py
+```
+
 Note: similar to [my YOLO v1 implementation](https://github.com/JeffersonQin/yolo-v1-pytorch), you should add `download=True` to `load_data_voc` in the training scripts for the first time if the datasets are not ready.
 
 Here are some diagrams.
@@ -137,10 +149,18 @@ Here are some diagrams.
 
 ## Testing
 
+Weights are already released. Download and put into `./model`.
+
 ResNet18
 
 ```
 python test_resnet18.py
+```
+
+ResNet 101
+
+```
+python test_resnet101.py
 ```
 
 ## Troubleshooting
