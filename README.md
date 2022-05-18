@@ -109,6 +109,43 @@ Furthermore, the loss implementation in this repo has solved the problem of mult
 | YOLOv2-ResNet18 (Ours)  | 544x544 | ResNet18  |     56.26%      |       27.12%        |    76.83     |
 | YOLOv2-ResNet101 (Ours) | 544x544 | ResNet101 |   **64.40%**    |     **35.06%**      |    28.92     |
 
+|          Model          |  Size   | Backbone  | mAP@VOC2012-test |    FPS    |
+| :---------------------: | :-----: | :-------: | :--------------: | :-------: |
+| YOLOv1-ResNet18 (Ours)  | 448x448 | ResNet18  |      44.54%      | **97.88** |
+| YOLOv1-ResNet50 (Ours)  | 448x448 | ResNet50  |      47.28%      |   58.40   |
+| YOLOv2-ResNet18 (Ours)  | 544x544 | ResNet18  |      56.11%      |   76.83   |
+| YOLOv2-ResNet101 (Ours) | 544x544 | ResNet101 |    **64.06%**    |   28.92   |
+|         YOLOv1          | 448x448 | Darknet?  |      57.9%       |    45     |
+|       YOLOv2 544        | 544x544 | Darknet19 |    **73.4%**     |    40     |
+
+Leaderboard Link:
+
+* Our [YOLOv1-ResNet18](http://host.robots.ox.ac.uk:8080/leaderboard/displaylb_main.php?challengeid=11&compid=3#KEY_YOLOv1-resnet-18-50)
+* Our [YOLOv1-ResNet50](http://host.robots.ox.ac.uk:8080/leaderboard/displaylb_main.php?challengeid=11&compid=4#KEY_YOLOv1-resnet-18-50)
+* Our [YOLOv2-ResNet18](http://host.robots.ox.ac.uk:8080/leaderboard/displaylb_main.php?challengeid=11&compid=3#KEY_YOLOv2-resnet-18-101)
+* Our [YOLOv2-ResNet101](http://host.robots.ox.ac.uk:8080/leaderboard/displaylb_main.php?challengeid=11&compid=4#KEY_YOLOv2-resnet-18-101)
+
+More comparison across categories:
+
+
+|          Model          | mean  | aero plane | bicycle | bird  | boat  | bottle |  bus  |  car  |  cat  | chair |  cow  |
+| :---------------------: | :---: | :--------: | :-----: | :---: | :---: | :----: | :---: | :---: | :---: | :---: | :---: |
+|          YOLO           | 57.9  |    77.0    |  67.2   | 57.7  | 38.3  |  22.7  | 68.3  | 55.9  | 81.4  | 36.2  | 60.8  |
+|         YOLOv2          | 75.4  |    86.6    |  85.0   | 76.8  | 61.1  |  55.5  | 81.2  | 78.2  | 91.8  | 56.8  | 79.6  |
+| YOLOv1-ResNet18 (Ours)  | 44.5  |    64.3    |  54.2   | 47.4  | 26.8  |  16.6  | 55.4  | 44.3  | 66.5  | 23.1  | 38.1  |
+| YOLOv1-ResNet50 (Ours)  | 47.3  |    66.7    |  56.1   | 49.5  | 25.9  |  17.8  | 60.2  | 45.9  | 70.6  | 26.1  | 43.0  |
+| YOLOv2-ResNet18 (Ours)  | 56.1  |    74.3    |  66.4   | 59.4  | 37.0  |  34.4  | 65.1  | 63.3  | 74.4  | 38.5  | 53.3  |
+| YOLOv2-ResNet101 (Ours) | 64.1  |    80.2    |  71.8   | 67.7  | 50.5  |  45.3  | 72.3  | 71.9  | 79.6  | 45.5  | 61.9  |
+
+|          Model          | dining<br>table |  dog  | horse | motor<br>bike | person | potted<br>plant | sheep | sofa  | train | tv<br>monitor |
+| :---------------------: | :-------------: | :---: | :---: | :-----------: | :----: | :-------------: | :---: | :---: | :---: | :-----------: |
+|          YOLO           |      48.5       | 77.2  | 72.3  |     71.3      |  63.5  |      28.9       | 52.2  | 54.8  | 73.9  |     50.8      |
+|         YOLOv2          |      61.7       | 89.7  | 86.0  |     85.0      |  84.2  |      51.2       | 79.4  | 62.9  | 84.9  |     71.0      |
+| YOLOv1-ResNet18 (Ours)  |      38.5       | 62.9  | 57.6  |     60.8      |  45.0  |      15.2       | 33.3  | 43.9  | 60.0  |     37.2      |
+| YOLOv1-ResNet50 (Ours)  |      41.1       | 67.5  | 59.2  |     62.4      |  47.6  |      17.6       | 35.6  | 45.7  | 64.6  |     42.4      |
+| YOLOv2-ResNet18 (Ours)  |      40.9       | 68.4  | 61.7  |     68.0      |  68.9  |      30.2       | 51.7  | 47.7  | 66.7  |     52.0      |
+| YOLOv2-ResNet101 (Ours) |      47.6       | 77.1  | 66.6  |     75.1      |  75.4  |      42.4       | 63.3  | 55.6  | 73.7  |     58.0      |
+
 2022/05/18 Update: I fixed a bug in the NMS (Non-maximum suppression) module of the model, and increased the mAP astonishingly for more than 7%. However here also comes the sad news. The model selection done in the current stage is based on the previous buggy code. As a student with poor experiment conditions, the parameter adjustion and model selection cost me for more than a week, so ... no new trained weights would be released, and I will put my efforts on YOLO v3 and later models.
 
 ## About Dimension Prior
