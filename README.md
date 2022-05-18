@@ -207,6 +207,12 @@ ResNet 101
 python test_resnet101.py
 ```
 
+Webcam Demo
+
+```
+python webcam.py
+```
+
 For VOC2012 test dataset, you can use `voc2012test.py` to generate test results.  Evaluation scores are also published in README. If you want to test it by yourself, please place VOC2012 test data in the current folder like below.
 
 ```
