@@ -207,6 +207,23 @@ ResNet 101
 python test_resnet101.py
 ```
 
+For VOC2012 test dataset, you can use `voc2012test.py` to generate test results.  Evaluation scores are also published in README. If you want to test it by yourself, please place VOC2012 test data in the current folder like below.
+
+```
+.
+README.md                   # Other files
+VOC2012test                 # create dataset folder
+└── VOCdevkit
+    └── VOC2012
+        ├── Annotations
+        ├── ImageSets
+        └── JPEGImages
+```
+
+VOC2012 test dataset download link:
+
+* [pjreddie mirror](https://pjreddie.com/projects/pascal-voc-dataset-mirror/)
+
 ## Troubleshooting
 
 The following problem may caused by lack of memory. Try setting `S`, `batch_size` smaller or `crop` bigger.
