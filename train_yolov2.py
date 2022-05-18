@@ -21,14 +21,16 @@ G.init()
 batch_size = 8
 accum_batch_num = 8
 num_epoch = 160
+multi_scale_epoch = 90
+output_scale_S = 17
 weight_decay = 0.0005
 momentum = 0.9
 lambda_coord = 5.0
 lambda_noobj = 1.0
-lambda_obj = 2.0
+lambda_obj = 5.0
 lambda_class = 1.0
 lambda_prior = 0.01
-IoU_thres = 0.5
+IoU_thres = 0.6
 epoch_prior = 20
 
 # learning rate scheduler
@@ -53,5 +55,7 @@ if __name__ == '__main__':
 	# weight init
 	detector.apply(weight_init)
 
+	optimizer = torch.optim.SGD(detector.parameters(), lr=lr(0), weight_decay=weight_decay, momentum=momentum)
+
 	# train
-	train(detector, train_iter, test_iter, num_epoch, lr, momentum, weight_decay, 'darknet19-no-pretrain', loss, 1, accum_batch_num, './model', None, -1)
+	train(detector, train_iter, test_iter, num_epoch, multi_scale_epoch, output_scale_S, lr, optimizer, 'darknet19-sgd', loss, 1, accum_batch_num, './model', None, None, -1)
