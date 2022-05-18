@@ -151,6 +151,15 @@ Here are some diagrams.
 
 Weights are already released. Download and put into `./model`.
 
+Here are the trained weights list provided.
+
+|                     File Name                      |    Size     | Backbone  | Final | Type  |           Note            |
+| :------------------------------------------------: | :---------: | :-------: | :---: | :---: | :-----------------------: |
+|       resnet18-pretrained-sgd-epoch-160.pth        |   544x544   | ResNet18  |   ✔   | Model |                           |
+|    resnet101-pretrained-sgd-17x17-epoch-160.pth    |   544x544   | ResNet101 |   ✔   | Model |                           |
+| resnet101-pretrained-sgd-multi-epoch-150-optim.pth | Multi-scale | ResNet101 |   ❌   | Optim | Used for further training |
+| resnet101-pretrained-sgd-multi-epoch-150-model.pth | Multi-scale | ResNet101 |   ❌   | Model | Used for further training |
+
 ResNet18
 
 ```
