@@ -12,7 +12,7 @@ from utils import visualize
 from utils import G
 
 
-data_set_dir = 'VOC2012test'
+data_set_dir = '../data/VOC2012test'
 result_base_dir = 'results'
 result_file_name = 'results.tar.gz'
 
