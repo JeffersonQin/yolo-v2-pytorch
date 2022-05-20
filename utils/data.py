@@ -130,7 +130,7 @@ class VOCDataset(data.Dataset):
 			xidx = math.floor(x * S)
 			yidx = math.floor(y * S)
 
-			if obj_cnt[yidx][xidx] > 4:
+			if obj_cnt[yidx][xidx] >= B:
 				warnings.warn(f'More than {B} objects in one cell ({S}x{S}): {target["annotation"]["folder"]}/{target["annotation"]["filename"]}', RuntimeWarning, stacklevel=2)
 				continue
 
