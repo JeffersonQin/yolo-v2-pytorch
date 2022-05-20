@@ -78,7 +78,7 @@ def train(data, batch_size, K, num_epoch, log_id='', device=try_gpu()):
 		})
 	
 	os.makedirs('./anchors', exist_ok=True)
-	with open(f'anchors/anchors-{k}.json', 'w') as f:
+	with open(f'anchors/anchors-{K}.json', 'w') as f:
 		json.dump(ret, f)
 
 	writer.add_scalar(f'IoU/K', metrics[0] / metrics[1], K)
