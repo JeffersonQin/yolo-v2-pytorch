@@ -16,7 +16,6 @@ class YoloAnchorLayer(nn.Module):
 
 	def forward(self, X: torch.Tensor) -> torch.Tensor:
 		self.anchors = self.anchors.to(X.device)
-		shape = X.shape
 		S = G.get('S')
 		B = G.get('B')
 		num_classes = G.get('num_classes')
