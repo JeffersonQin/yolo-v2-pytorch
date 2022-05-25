@@ -100,6 +100,8 @@ Here are some explanation.
 
 Furthermore, the loss implementation in this repo has solved the problem of multiple instance in one single cell by calculation global IoU and performing global responsible object selection algorithm.
 
+[2022/05/25 Update] When implementing YOLO v3 and checking YOLO v2 code today, I discovered that the coordinate loss I implemented was the YOLO v3 version. That is, I multiplied the coordinate loss by `(2 - truth.w * truth.h)`. Also, today I discovered that the global responsible trick I applied in this version of code is indeed not that efficient, as it will miscalculate when responsible cell and ground truth is not in the same cell and even cost large amount of GPU memory. With this version of loss, I literally cannot train the v3 network anymore since the multi-head design needs times more memory, which let me bumping into OOM problem. Anyway, I preserve the current design. If you want to see the newer design, please check [my YOLO v3 implementation repo](https://github.com/JeffersonQin/yolo-v3-pytorch).
+
 ## Performance
 
 |          Model          |  Size   | Backbone  | mAP@VOC2012-val | COCOmAP@VOC2012-val | FPS@RTX2070s |
