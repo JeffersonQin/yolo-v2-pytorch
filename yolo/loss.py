@@ -108,7 +108,7 @@ class YoloLoss(nn.Module):
 				# filter out MaxIoU < IoU_thres
 				no_obj_iou = MaxIoU < self.IoU_thres
 
-				# [#, S*S*B (YHat), S*S*B (Y)] => [#, S*S*B (YHat), S*S*B (Y)]
+				# [#, S*S*B (YHat), S*S*B (Y)] => [#, S*S*B (Y), S*S*B (YHat)]
 				IoU = torch.permute(IoU, [0, 2, 1])
 
 				_, idx = IoU.max(dim=2, keepdim=True)
