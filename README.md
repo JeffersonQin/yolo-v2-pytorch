@@ -106,18 +106,18 @@ Furthermore, the loss implementation in this repo has solved the problem of mult
 
 |          Model          |  Size   | Backbone  | mAP@VOC2012-val | COCOmAP@VOC2012-val | FPS@RTX2070s |
 | :---------------------: | :-----: | :-------: | :-------------: | :-----------------: | :----------: |
-| YOLOv1-ResNet18 (Ours)  | 448x448 | ResNet18  |     48.10%      |       23.18%        |  **97.88**   |
-| YOLOv1-ResNet50 (Ours)  | 448x448 | ResNet50  |     49.87%      |       23.95%        |    58.40     |
+| YOLOv1-ResNet18 (Ours)  | 416x416 | ResNet18  |     48.10%      |       23.18%        |  **97.88**   |
+| YOLOv1-ResNet50 (Ours)  | 416x416 | ResNet50  |     49.87%      |       23.95%        |    58.40     |
 | YOLOv2-ResNet18 (Ours)  | 544x544 | ResNet18  |     56.26%      |       27.12%        |    76.83     |
 | YOLOv2-ResNet101 (Ours) | 544x544 | ResNet101 |   **64.40%**    |     **35.06%**      |    28.92     |
 
 |          Model          |  Size   | Backbone  | mAP@VOC2012-test |    FPS    |
 | :---------------------: | :-----: | :-------: | :--------------: | :-------: |
-| YOLOv1-ResNet18 (Ours)  | 448x448 | ResNet18  |      44.54%      | **97.88** |
-| YOLOv1-ResNet50 (Ours)  | 448x448 | ResNet50  |      47.28%      |   58.40   |
+| YOLOv1-ResNet18 (Ours)  | 416x416 | ResNet18  |      44.54%      | **97.88** |
+| YOLOv1-ResNet50 (Ours)  | 416x416 | ResNet50  |      47.28%      |   58.40   |
 | YOLOv2-ResNet18 (Ours)  | 544x544 | ResNet18  |      56.11%      |   76.83   |
 | YOLOv2-ResNet101 (Ours) | 544x544 | ResNet101 |    **64.06%**    |   28.92   |
-|         YOLOv1          | 448x448 | Darknet?  |      57.9%       |    45     |
+|         YOLOv1          | 416x416 | Darknet?  |      57.9%       |    45     |
 |       YOLOv2 544        | 544x544 | Darknet19 |    **73.4%**     |    40     |
 
 Leaderboard Link:
